@@ -77,4 +77,9 @@ root as the skill.
 git -C upstream/chrisbanes-skills fetch --tags --prune origin
 git -C upstream/chrisbanes-skills checkout <tag-or-branch>
 node scripts/generate-chrisbanes-skills-use.js
+npm run validate
+npx -y skills add ./dist/chrisbanes-skills-use -g -y
 ```
+
+Then commit the submodule pointer change in this repository. Do not commit
+`dist/`.
