@@ -40,6 +40,10 @@ npm run validate
 npx -y skills add ./dist/chrisbanes-skills-use -g -y
 ```
 
+The installed directory must be named `chrisbanes-skills-use` and contain
+`SKILL.md` at its root. If it is named `chrisbanes-skills-use-router`, the
+repository root was installed by mistake.
+
 Skip the clone if `upstream/chrisbanes-skills/` already exists. If the user
 already has a local upstream checkout elsewhere, pass it with
 `--source /path/to/chrisbanes/skills/skills`.
