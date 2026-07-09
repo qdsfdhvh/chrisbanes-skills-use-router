@@ -66,6 +66,11 @@ npm run validate
 npx -y skills add ./dist/chrisbanes-skills-use -g -y
 ```
 
+The installed skill should be named `chrisbanes-skills-use` and have
+`SKILL.md` at its root, for example
+`.agents/skills/chrisbanes-skills-use/SKILL.md`. Do not import this repository
+root as the skill.
+
 ## Update Upstream
 
 ```bash
