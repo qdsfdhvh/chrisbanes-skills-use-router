@@ -1,0 +1,4 @@
+interface:
+  display_name: "Chrisbanes Skills Use"
+  short_description: "Route Kotlin and Compose skill docs"
+  default_prompt: "Use $chrisbanes-skills-use to choose the right Kotlin, Android, or Jetpack Compose skill guidance."

@@ -1,0 +1,11 @@
+{
+  "name": "chrisbanes-skills-use-router",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "generate": "node scripts/generate-chrisbanes-skills-use.js",
+    "install-local": "node scripts/install-local.js",
+    "validate": "node scripts/validate-generated-skill.js"
+  }
+}
