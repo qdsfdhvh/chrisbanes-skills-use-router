@@ -141,11 +141,17 @@ function copyDir(src, dest) {
 }
 
 function categoryForSkill(name) {
-  if (name === "using-chrisbanes-skills") return "Routing";
+  if (name === "using-chrisbanes-skills") return "Primary Router";
   if (name.startsWith("compose-")) return "Jetpack Compose";
   if (name.startsWith("kotlin-")) return "Kotlin";
   if (name === "shepherd") return "Workflow";
   return "Other";
+}
+
+function compareSkills(a, b) {
+  if (a.name === "using-chrisbanes-skills") return -1;
+  if (b.name === "using-chrisbanes-skills") return 1;
+  return a.name.localeCompare(b.name);
 }
 
 function escapeTableCell(value) {
@@ -171,7 +177,7 @@ function writeOpenAiYaml(outputDir) {
   const content = `interface:
   display_name: "Chrisbanes Skills Use"
   short_description: "Route Kotlin and Compose skill docs"
-  default_prompt: "Use $${skillName} to choose the right Kotlin, Android, or Jetpack Compose skill guidance."
+  default_prompt: "Use $${skillName} to read the using-chrisbanes-skills guide and choose the right focused Kotlin, Android, or Jetpack Compose guidance."
 `;
   fs.writeFileSync(path.join(agentsDir, "openai.yaml"), content);
 }
@@ -211,7 +217,7 @@ function main() {
       docPath,
       name,
     };
-  });
+  }).sort(compareSkills);
 
   fs.rmSync(outputDir, { recursive: true, force: true });
   fs.mkdirSync(outputDir, { recursive: true });

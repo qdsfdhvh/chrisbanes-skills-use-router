@@ -20,8 +20,9 @@ locally whenever the upstream checkout changes.
 
 Upstream already includes `using-chrisbanes-skills`, which explains how to pick
 between the focused skills. This project keeps that doc, but moves it into the
-same generated reference layout as the other skills instead of requiring the
-original multi-skill repo structure.
+same generated reference layout as the other skills. Broad or unclear tasks are
+guided to `references/using-chrisbanes-skills/DOC.md` first, then to the focused
+docs it selects.
 
 ## Generate
 

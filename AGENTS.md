@@ -25,6 +25,72 @@ only the relevant copied reference doc from
 - `dist/chrisbanes-skills-use/` — generated installable skill, ignored by git.
 - `.env` — local direct-install targets, ignored by git.
 
+## Quick Start for Agents
+
+This repository is not itself an installable skill. The installable skill is
+generated into `dist/chrisbanes-skills-use/`, and `dist/` is intentionally not
+committed.
+
+When a user asks to "use", "install", "import", or "try" this project:
+
+1. Ensure the upstream `chrisbanes/skills` checkout exists:
+
+   ```bash
+   git clone https://github.com/chrisbanes/skills.git upstream/chrisbanes-skills
+   ```
+
+   If `upstream/chrisbanes-skills/` already exists, do not reclone it. Update it
+   only when the user asks for latest upstream content.
+
+2. Generate the router skill:
+
+   ```bash
+   node scripts/generate-chrisbanes-skills-use.js
+   ```
+
+3. Validate the generated skill:
+
+   ```bash
+   npm run validate
+   ```
+
+4. Install or import the generated skill directory:
+
+   ```bash
+   npx -y skills add ./dist/chrisbanes-skills-use -g -y
+   ```
+
+   If using a UI file picker, select `dist/chrisbanes-skills-use/`, not the
+   repository root.
+
+If network access is unavailable, use an existing local checkout by passing
+`--source /path/to/chrisbanes/skills/skills`.
+
+## Using the Generated Skill
+
+After installation, the skill name is `chrisbanes-skills-use`.
+
+Invoke it explicitly when needed:
+
+```text
+Use $chrisbanes-skills-use to review this Compose screen.
+```
+
+The generated skill is a router. Its default first stop should be
+`references/using-chrisbanes-skills/DOC.md`, which is the upstream
+`using-chrisbanes-skills` guide copied into the generated skill.
+
+Use that copied guide for broad or unclear Kotlin, Android, and Compose tasks.
+Only skip directly to another `references/<skill-name>/DOC.md` when the user
+names a narrow concern that clearly matches one focused skill.
+
+After `using-chrisbanes-skills` selects the focused skill or skills, read only
+those docs. Do not read every upstream skill doc.
+
+Do not install every upstream `chrisbanes/skills` skill alongside this router
+unless the user explicitly wants that. The point of this project is to reduce
+startup context by installing one router skill.
+
 ## Generate Preview
 
 Run from this directory after providing an upstream checkout:
@@ -121,8 +187,10 @@ Commit generator, template, README, package, and AGENTS changes. Do not commit
 - Rename copied upstream `SKILL.md` files to `DOC.md`.
 - Strip YAML frontmatter from copied `DOC.md` files.
 - Rewrite copied markdown links from `SKILL.md` to `DOC.md`.
-- Keep `using-chrisbanes-skills` as a copied reference doc, not as a second
-  installed skill.
+- Keep `using-chrisbanes-skills` as the primary copied route guide at
+  `references/using-chrisbanes-skills/DOC.md`, not as a second installed skill.
+- Make the generated `SKILL.md` guide broad or unclear tasks to
+  `references/using-chrisbanes-skills/DOC.md` before focused docs.
 - Copy the upstream license into generated output as `UPSTREAM-LICENSE`.
 - Do not duplicate every upstream frontmatter block in the router `SKILL.md`;
   keep only the compact generated index.

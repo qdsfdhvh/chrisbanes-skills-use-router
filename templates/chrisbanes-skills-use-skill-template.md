@@ -1,26 +1,29 @@
 ---
 name: chrisbanes-skills-use
-description: "Use this skill when a Kotlin, Android, Jetpack Compose, Compose Multiplatform, coroutine, Flow, KMP, UI testing, UI API design, recomposition/performance, focus/navigation, animation, or PR shepherding task may benefit from chrisbanes/skills but installing or triggering every focused skill would be too broad. Route to only the relevant copied reference doc before giving detailed advice or editing code."
+description: "Use this skill when a Kotlin, Android, Jetpack Compose, Compose Multiplatform, coroutine, Flow, KMP, UI testing, UI API design, recomposition/performance, focus/navigation, animation, or PR shepherding task may benefit from chrisbanes/skills but installing or triggering every focused skill would be too broad. Route broad or unclear tasks through the copied using-chrisbanes-skills guide, then read only the focused reference docs it selects."
 ---
 
 # Chrisbanes Skills Use
 
 This skill is a lightweight router for the `chrisbanes/skills` skill set.
 
-Use the index below to choose the smallest relevant reference doc, then read
-`references/<skill-name>/DOC.md` before detailed advice, review findings, or
-code edits. Do not assume the router body is enough for execution details: the
-copied docs contain the actual guidance, examples, and cross-skill routing.
+Use `references/using-chrisbanes-skills/DOC.md` as the canonical upstream route
+guide. Read it first for broad or unclear Kotlin, Android, and Jetpack Compose
+work, then read only the focused `references/<skill-name>/DOC.md` files it
+selects before detailed advice, review findings, or code edits.
+
+Do not assume the router body is enough for execution details: the copied docs
+contain the actual guidance, examples, and cross-skill routing.
 
 ## Routing Rules
 
-- Match the user's request against the original skill descriptions below.
-- Prefer the most specific focused doc. For example, use `compose-side-effects`
-  for `LaunchedEffect`, `kotlin-flow-state-event-modeling` for `StateFlow`, and
-  `compose-ui-testing-patterns` for Compose UI tests.
-- For broad Compose/Kotlin work where the focused doc is unclear, read
-  `references/using-chrisbanes-skills/DOC.md` first, then read the focused docs
-  it routes to.
+- Default to `references/using-chrisbanes-skills/DOC.md` when the request is a
+  broad review, refactor, architecture question, state/performance/testing task,
+  or any task that may span multiple focused skills.
+- Skip directly to a focused doc only when the user names a narrow concern that
+  clearly matches one skill. Examples: `LaunchedEffect` ->
+  `compose-side-effects`, `StateFlow` -> `kotlin-flow-state-event-modeling`,
+  Compose UI tests -> `compose-ui-testing-patterns`.
 - If a selected doc points to another `DOC.md`, read that doc before applying
   guidance in that area.
 - Use multiple docs only when the task truly spans multiple areas, such as
@@ -30,26 +33,14 @@ copied docs contain the actual guidance, examples, and cross-skill routing.
   use it directly. This router exists to reduce startup context when the whole
   upstream set is not installed.
 
-## Fast Routes
+## Primary Route
 
 | Task signal | Start with |
 | --- | --- |
-| Broad Compose screen review, refactor, ViewModel/component wiring, navigation, or Flow collection mixed with layout | `compose-state-holder-ui-split` |
-| Local Compose state, `remember { mutableStateOf(...) }`, mutable state lists/maps, or `@ReadOnlyComposable` | `compose-state-authoring` |
-| Deciding whether state is local, hoisted, in a plain holder, or in a screen holder | `compose-state-hoisting` |
-| `LaunchedEffect`, `DisposableEffect`, snackbar, navigation events, analytics, focus requests, or event Flow collection | `compose-side-effects` |
-| Recomposition, jank, compiler reports, Layout Inspector counts, unstable params, scroll/animation reads, or back-writing state | `compose-recomposition-performance` |
-| Modifier parameters, root layout placement, hardcoded layout decisions, or modifier chain style | `compose-modifier-and-layout-style` |
-| Reusable Compose component API, content slots, optional visual regions, or boolean shape flags | `compose-slot-api-pattern` |
-| Compose animation API choice, transitions, visibility, content swaps, or state-driven animation | `compose-animations` |
-| Keyboard, desktop, TV, D-pad, focus order, `FocusRequester`, or key events | `compose-focus-navigation` |
-| Compose UI tests, screenshot tests, previews, semantics, fake image loading, keyboard input, or focus assertions | `compose-ui-testing-patterns` |
-| Coroutine scope ownership, fire-and-forget launch boundaries, `runBlocking`, or cancellation handling | `kotlin-coroutines-structured-concurrency` |
-| `StateFlow`, `SharedFlow`, `Channel`, `stateIn`, one-shot events, sentinel initial values, or expensive `update` blocks | `kotlin-flow-state-event-modeling` |
-| KMP source set boundaries, `expect`/`actual`, platform APIs, native SDKs, or Compose Multiplatform interop | `kotlin-multiplatform-expect-actual` |
-| Kotlin branching, `when`, guard conditions, sealed exhaustiveness, smart casts, nullable branching, or early returns | `kotlin-control-flow` |
-| Single-field domain types, primitive obsession, or `@JvmInline value class` vs `data class` | `kotlin-types-value-class` |
-| Shepherding PRs/MRs, review comment triage, CI polling, or keeping reviews moving | `shepherd` |
+| Broad Kotlin, Android, or Compose review/refactor/architecture work | `references/using-chrisbanes-skills/DOC.md` |
+| Multiple possible focused skills may apply | `references/using-chrisbanes-skills/DOC.md` |
+| Unsure which focused skill applies | `references/using-chrisbanes-skills/DOC.md` |
+| Narrow concern that clearly matches one skill | The matching focused doc from the index below |
 
 ## Original Skill Index
 

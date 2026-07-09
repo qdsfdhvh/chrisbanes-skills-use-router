@@ -71,6 +71,9 @@ function validate(skillDir) {
   if (!description || description.length > 1024) {
     fail("Description must be present and no longer than 1024 characters");
   }
+  if (!skillMd.includes("references/using-chrisbanes-skills/DOC.md")) {
+    fail("SKILL.md must route broad tasks through references/using-chrisbanes-skills/DOC.md");
+  }
 
   const refsDir = path.join(skillDir, "references");
   if (!fs.existsSync(refsDir)) {
@@ -84,6 +87,10 @@ function validate(skillDir) {
 
   if (referenceDocs.length === 0) {
     fail("No reference DOC.md files generated");
+  }
+  const usingGuidePath = path.join(refsDir, "using-chrisbanes-skills", "DOC.md");
+  if (!fs.existsSync(usingGuidePath)) {
+    fail("Missing primary route guide: references/using-chrisbanes-skills/DOC.md");
   }
   for (const docPath of referenceDocs) {
     if (!fs.existsSync(docPath)) {
