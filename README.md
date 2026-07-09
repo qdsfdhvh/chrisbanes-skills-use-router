@@ -14,6 +14,10 @@ This router collapses that set into one small entry skill. The generated
 `references/<skill-name>/DOC.md`. Codex reads only the relevant copied doc when a
 task actually needs it.
 
+`dist/` is generated output and is intentionally not committed. This avoids
+checking copied upstream skill docs into this repository; regenerate the router
+locally whenever the upstream checkout changes.
+
 Upstream already includes `using-chrisbanes-skills`, which explains how to pick
 between the focused skills. This project keeps that doc, but moves it into the
 same generated reference layout as the other skills instead of requiring the
@@ -53,7 +57,10 @@ dist/chrisbanes-skills-use/
 
 ## Install
 
+Generate first, then install the generated skill:
+
 ```bash
+node scripts/generate-chrisbanes-skills-use.js
 npx -y skills add ./dist/chrisbanes-skills-use -g -y
 ```
 
