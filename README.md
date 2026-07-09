@@ -58,22 +58,12 @@ dist/chrisbanes-skills-use/
 
 ## Install
 
-Generate first, then install the generated skill:
+Generate and install:
 
 ```bash
 node scripts/generate-chrisbanes-skills-use.js
+npm run validate
 npx -y skills add ./dist/chrisbanes-skills-use -g -y
-```
-
-Use the leading `./`; otherwise `skills` may treat the path as a GitHub
-shorthand.
-
-For local direct install, copy `.env.example` to `.env`, edit the target list if
-needed, then run:
-
-```bash
-node scripts/generate-chrisbanes-skills-use.js
-node scripts/install-local.js
 ```
 
 ## Update Upstream

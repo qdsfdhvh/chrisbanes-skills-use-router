@@ -31,40 +31,21 @@ This repository is not itself an installable skill. The installable skill is
 generated into `dist/chrisbanes-skills-use/`, and `dist/` is intentionally not
 committed.
 
-When a user asks to "use", "install", "import", or "try" this project:
+When a user asks to install or try this project, keep it mechanical:
 
-1. Ensure the upstream `chrisbanes/skills` checkout exists:
+```bash
+git clone https://github.com/chrisbanes/skills.git upstream/chrisbanes-skills
+node scripts/generate-chrisbanes-skills-use.js
+npm run validate
+npx -y skills add ./dist/chrisbanes-skills-use -g -y
+```
 
-   ```bash
-   git clone https://github.com/chrisbanes/skills.git upstream/chrisbanes-skills
-   ```
-
-   If `upstream/chrisbanes-skills/` already exists, do not reclone it. Update it
-   only when the user asks for latest upstream content.
-
-2. Generate the router skill:
-
-   ```bash
-   node scripts/generate-chrisbanes-skills-use.js
-   ```
-
-3. Validate the generated skill:
-
-   ```bash
-   npm run validate
-   ```
-
-4. Install or import the generated skill directory:
-
-   ```bash
-   npx -y skills add ./dist/chrisbanes-skills-use -g -y
-   ```
-
-   If using a UI file picker, select `dist/chrisbanes-skills-use/`, not the
-   repository root.
-
-If network access is unavailable, use an existing local checkout by passing
+Skip the clone if `upstream/chrisbanes-skills/` already exists. If the user
+already has a local upstream checkout elsewhere, pass it with
 `--source /path/to/chrisbanes/skills/skills`.
+
+Do not spend time explaining install mechanics unless the user asks. The
+important behavior is how the generated skill routes to upstream skill docs.
 
 ## Using the Generated Skill
 
@@ -90,70 +71,6 @@ those docs. Do not read every upstream skill doc.
 Do not install every upstream `chrisbanes/skills` skill alongside this router
 unless the user explicitly wants that. The point of this project is to reduce
 startup context by installing one router skill.
-
-## Generate Preview
-
-Run from this directory after providing an upstream checkout:
-
-```bash
-git clone https://github.com/chrisbanes/skills.git upstream/chrisbanes-skills
-node scripts/generate-chrisbanes-skills-use.js
-npm run validate
-```
-
-If the upstream checkout already exists somewhere else:
-
-```bash
-node scripts/generate-chrisbanes-skills-use.js --source /path/to/chrisbanes/skills/skills
-npm run validate
-```
-
-To generate into a temporary preview directory:
-
-```bash
-node scripts/generate-chrisbanes-skills-use.js --source /path/to/chrisbanes/skills/skills --output dist/chrisbanes-skills-use-preview
-npm run validate -- dist/chrisbanes-skills-use-preview
-```
-
-## Install
-
-Generate first, then install the generated local skill:
-
-```bash
-node scripts/generate-chrisbanes-skills-use.js
-npx -y skills add ./dist/chrisbanes-skills-use -g -y
-```
-
-The `./` prefix is important. Without it, `skills` may interpret
-`dist/chrisbanes-skills-use` as a GitHub shorthand.
-
-Check installed skills:
-
-```bash
-npx -y skills list -g
-```
-
-## Local Direct Install
-
-Copy `.env.example` to `.env` and edit if you want non-default install targets:
-
-```bash
-cp .env.example .env
-```
-
-`CHRISBANES_SKILLS_USE_INSTALL_TARGETS` is a colon-separated list of agent
-config roots. `~` is expanded to the current user's home directory. The
-installer copies the generated skill into each root's
-`skills/chrisbanes-skills-use` directory.
-
-`.env` is gitignored because it is per-machine configuration.
-
-Run:
-
-```bash
-node scripts/generate-chrisbanes-skills-use.js
-node scripts/install-local.js
-```
 
 ## Update Upstream Skills
 
