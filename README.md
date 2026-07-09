@@ -26,10 +26,10 @@ docs it selects.
 
 ## Generate
 
-First provide an upstream checkout:
+Initialize the upstream submodule:
 
 ```bash
-git clone https://github.com/chrisbanes/skills.git upstream/chrisbanes-skills
+git submodule update --init --recursive
 ```
 
 Then generate the router skill:

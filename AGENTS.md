@@ -20,8 +20,8 @@ only the relevant copied reference doc from
   output.
 - `templates/chrisbanes-skills-use-skill-template.md` — generated `SKILL.md`
   template.
-- `upstream/chrisbanes-skills/` — optional local checkout of
-  `https://github.com/chrisbanes/skills.git`, ignored by git.
+- `upstream/chrisbanes-skills/` — git submodule for
+  `https://github.com/chrisbanes/skills.git`.
 - `dist/chrisbanes-skills-use/` — generated installable skill, ignored by git.
 - `.env` — local direct-install targets, ignored by git.
 
@@ -34,7 +34,7 @@ committed.
 When a user asks to install or try this project, keep it mechanical:
 
 ```bash
-git clone https://github.com/chrisbanes/skills.git upstream/chrisbanes-skills
+git submodule update --init --recursive
 node scripts/generate-chrisbanes-skills-use.js
 npm run validate
 npx -y skills add ./dist/chrisbanes-skills-use -g -y
@@ -44,8 +44,7 @@ The installed directory must be named `chrisbanes-skills-use` and contain
 `SKILL.md` at its root. If it is named `chrisbanes-skills-use-router`, the
 repository root was installed by mistake.
 
-Skip the clone if `upstream/chrisbanes-skills/` already exists. If the user
-already has a local upstream checkout elsewhere, pass it with
+If the user already has a local upstream checkout elsewhere, pass it with
 `--source /path/to/chrisbanes/skills/skills`.
 
 Do not spend time explaining install mechanics unless the user asks. The
@@ -99,7 +98,7 @@ npm run validate
 ```
 
 Commit generator, template, README, package, and AGENTS changes. Do not commit
-`upstream/` or `dist/`.
+`dist/`. Commit the submodule pointer when intentionally updating upstream.
 
 ## Generated Content Rules
 

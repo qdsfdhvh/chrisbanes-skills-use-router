@@ -1,0 +1,3 @@
+[submodule "upstream/chrisbanes-skills"]
+	path = upstream/chrisbanes-skills
+	url = https://github.com/chrisbanes/skills.git
