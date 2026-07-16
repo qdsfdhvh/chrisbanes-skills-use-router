@@ -14,9 +14,11 @@ This router collapses that set into one small entry skill. The generated
 `references/<skill-name>/DOC.md`. Codex reads only the relevant copied doc when a
 task actually needs it.
 
-`dist/` is generated output and is intentionally not committed. This avoids
-checking copied upstream skill docs into this repository; regenerate the router
-locally whenever the upstream checkout changes.
+`skills/chrisbanes-skills-use/` is generated output and is committed to git.
+This allows skills managers to install directly from the GitHub URL and detect
+updates via the `version` field in SKILL.md frontmatter.
+The GitHub Actions workflow (`.github/workflows/update-skills.yml`) auto-updates
+from upstream tags daily. Regenerate locally whenever the upstream checkout changes.
 
 Upstream already includes `using-chrisbanes-skills`, which explains how to pick
 between the focused skills. This project keeps that doc, but moves it into the
@@ -48,8 +50,9 @@ node scripts/generate-chrisbanes-skills-use.js --source /path/to/chrisbanes/skil
 Output:
 
 ```text
-dist/chrisbanes-skills-use/
+skills/chrisbanes-skills-use/
 ├── SKILL.md
+├── UPSTREAM-LICENSE
 ├── agents/
 │   └── openai.yaml
 └── references/
@@ -58,12 +61,23 @@ dist/chrisbanes-skills-use/
 
 ## Install
 
+### From local source
+
 Generate and install:
 
 ```bash
+git submodule update --init --recursive
 node scripts/generate-chrisbanes-skills-use.js
 npm run validate
-npx -y skills add ./dist/chrisbanes-skills-use -g -y
+npx -y skills add ./skills/chrisbanes-skills-use -g -y
+```
+
+### From remote URL
+
+For skills managers that support remote install:
+
+```bash
+skills add https://github.com/qdsfdhvh/chrisbanes-skills-use-router/tree/master/skills/chrisbanes-skills-use
 ```
 
 The installed skill should be named `chrisbanes-skills-use` and have
@@ -78,8 +92,8 @@ git -C upstream/chrisbanes-skills fetch --tags --prune origin
 git -C upstream/chrisbanes-skills checkout <tag-or-branch>
 node scripts/generate-chrisbanes-skills-use.js
 npm run validate
-npx -y skills add ./dist/chrisbanes-skills-use -g -y
+npx -y skills add ./skills/chrisbanes-skills-use -g -y
 ```
 
-Then commit the submodule pointer change in this repository. Do not commit
-`dist/`.
+Then commit the submodule pointer change and the updated
+`skills/chrisbanes-skills-use/` directory.
