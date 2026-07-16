@@ -1,11 +1,11 @@
 # chrisbanes-skills-use-router
 
 Generate a single `chrisbanes-skills-use` skill from the upstream
-`chrisbanes/skills` Kotlin, Android, and Jetpack Compose skill set.
+[`chrisbanes/skills`](https://github.com/chrisbanes/skills) Kotlin, Android, and Jetpack Compose skill set.
 
 ## Why
 
-`chrisbanes/skills` ships many focused skills. Installing all of them means every
+[`chrisbanes/skills`](https://github.com/chrisbanes/skills) ships many focused skills. Installing all of them means every
 frontmatter description is loaded at session startup, even when the current task
 does not touch Kotlin, Android, or Compose.
 
@@ -75,6 +75,14 @@ npx -y skills add ./skills/chrisbanes-skills-use -g -y
 ### From remote URL
 
 For skills managers that support remote install:
+
+### Via npx
+
+Install directly without cloning this repo:
+
+```bash
+npx -y skills add https://github.com/qdsfdhvh/chrisbanes-skills-use-router/tree/master/skills/chrisbanes-skills-use -g
+```
 
 ```bash
 skills add https://github.com/qdsfdhvh/chrisbanes-skills-use-router/tree/master/skills/chrisbanes-skills-use
