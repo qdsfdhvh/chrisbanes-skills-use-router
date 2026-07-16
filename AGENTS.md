@@ -22,13 +22,14 @@ only the relevant copied reference doc from
   template.
 - `upstream/chrisbanes-skills/` — git submodule for
   `https://github.com/chrisbanes/skills.git`.
-- `dist/chrisbanes-skills-use/` — generated installable skill, ignored by git.
+- `skills/chrisbanes-skills-use/` — generated installable skill, committed to git.
+- `.github/workflows/update-skills.yml` — daily CI to auto-update from upstream.
 - `.env` — local direct-install targets, ignored by git.
 
 ## Quick Start for Agents
 
 This repository is not itself an installable skill. The installable skill is
-generated into `dist/chrisbanes-skills-use/`, and `dist/` is intentionally not
+generated into `skills/chrisbanes-skills-use/` and committed to git.
 committed.
 
 When a user asks to install or try this project, keep it mechanical:
@@ -37,7 +38,12 @@ When a user asks to install or try this project, keep it mechanical:
 git submodule update --init --recursive
 node scripts/generate-chrisbanes-skills-use.js
 npm run validate
-npx -y skills add ./dist/chrisbanes-skills-use -g -y
+npx -y skills add ./skills/chrisbanes-skills-use -g -y
+```
+
+To install from the remote GitHub URL (skills managers that support it):
+```bash
+skills add https://github.com/qdsfdhvh/chrisbanes-skills-use-router/tree/master/skills/chrisbanes-skills-use
 ```
 
 The installed directory must be named `chrisbanes-skills-use` and contain
@@ -97,8 +103,25 @@ node scripts/generate-chrisbanes-skills-use.js
 npm run validate
 ```
 
-Commit generator, template, README, package, and AGENTS changes. Do not commit
-`dist/`. Commit the submodule pointer when intentionally updating upstream.
+## Remote Installation & Auto-Update
+
+The generated skill is committed to `skills/chrisbanes-skills-use/` so skills
+managers can install from the GitHub URL and detect updates via the `version`
+field in SKILL.md frontmatter:
+
+```bash
+skills add https://github.com/qdsfdhvh/chrisbanes-skills-use-router/tree/master/skills/chrisbanes-skills-use
+```
+
+A daily GitHub Actions workflow (`.github/workflows/update-skills.yml`) checks
+for new upstream tags and auto-generates, validates, commits, tags, and pushes
+when a new version is available. Manual trigger via `workflow_dispatch` is also
+supported.
+
+```
+
+Commit generator, template, README, package, skills/, and AGENTS changes. Commit
+the submodule pointer when intentionally updating upstream.
 
 ## Generated Content Rules
 
@@ -114,5 +137,5 @@ Commit generator, template, README, package, and AGENTS changes. Do not commit
 - Copy the upstream license into generated output as `UPSTREAM-LICENSE`.
 - Do not duplicate every upstream frontmatter block in the router `SKILL.md`;
   keep only the compact generated index.
-- Treat `dist/` as disposable generated output. Regenerate it rather than
-  editing it by hand.
+- The generated skill lives in `skills/chrisbanes-skills-use/` and is committed.
+  Treat it as versioned output; regenerate rather than edit by hand.

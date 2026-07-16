@@ -2,13 +2,14 @@
 
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
 const skillName = "chrisbanes-skills-use";
 
 const defaults = {
   source: "upstream/chrisbanes-skills/skills",
-  output: "dist/chrisbanes-skills-use",
+  output: "skills/chrisbanes-skills-use",
   template: "templates/chrisbanes-skills-use-skill-template.md",
 };
 
@@ -27,6 +28,15 @@ The generated skill contains:
   references/<skill-name>/DOC.md
   references/<skill-name>/...
 `;
+}
+
+function readUpstreamVersion(sourceDir) {
+  const upstreamRoot = path.dirname(sourceDir);
+  try {
+    return execSync("git describe --tags --abbrev=0", { cwd: upstreamRoot, encoding: "utf8" }).trim();
+  } catch {
+    return "unknown";
+  }
 }
 
 function parseArgs(argv) {
@@ -227,14 +237,15 @@ function main() {
     copyDir(skill.dir, path.join(referencesDir, path.basename(skill.dir)));
   }
 
+  const upstreamVersion = readUpstreamVersion(sourceDir);
   const template = fs.readFileSync(templatePath, "utf8");
-  const generated = template.replaceAll("{{SKILL_INDEX}}", renderSkillIndex(skills));
+  const generated = template.replaceAll("{{VERSION}}", upstreamVersion).replaceAll("{{SKILL_INDEX}}", renderSkillIndex(skills));
 
   fs.writeFileSync(path.join(outputDir, "SKILL.md"), generated);
   writeOpenAiYaml(outputDir);
   copyUpstreamLicense(sourceDir, outputDir);
 
-  console.log(`Generated ${skills.length} skills into ${path.relative(repoRoot, outputDir)}`);
+  console.log(`Generated ${skills.length} skills (upstream ${upstreamVersion}) into ${path.relative(repoRoot, outputDir)}`);
   console.log(`Router skill: ${path.relative(repoRoot, path.join(outputDir, "SKILL.md"))}`);
   console.log(`Reference docs: ${path.relative(repoRoot, referencesDir)}`);
 }

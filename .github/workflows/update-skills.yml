@@ -1,0 +1,80 @@
+name: Update chrisbanes-skills-use
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # daily at 06:00 UTC
+  workflow_dispatch:       # manual trigger
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch upstream tags
+        run: |
+          cd upstream/chrisbanes-skills
+          git fetch --tags --prune origin
+          echo "LATEST_TAG=$(git tag --sort=-creatordate | head -1)" >> $GITHUB_ENV
+
+      - name: Read current version
+        id: current
+        run: |
+          CURRENT=$(node -e "
+            const fs = require('fs');
+            const path = require('path');
+            const skill = 'skills/chrisbanes-skills-use/SKILL.md';
+            if (fs.existsSync(skill)) {
+              const fm = fs.readFileSync(skill, 'utf8').match(/^---\n([\\s\\S]*?)\n---/);
+              if (fm) {
+                const m = fm[1].match(/version:\\s*\"(.*)\"/);
+                if (m) console.log(m[1]);
+              }
+            }
+          ")
+          echo "CURRENT_VERSION=$CURRENT" >> $GITHUB_ENV
+          echo "Current: $CURRENT, Latest: $LATEST_TAG"
+
+      - name: Check if update needed
+        id: check
+        run: |
+          if [ "$CURRENT_VERSION" = "$LATEST_TAG" ]; then
+            echo "NEED_UPDATE=false" >> $GITHUB_ENV
+            echo "Already up to date ($CURRENT_VERSION)"
+          else
+            echo "NEED_UPDATE=true" >> $GITHUB_ENV
+            echo "Update needed: $CURRENT_VERSION → $LATEST_TAG"
+          fi
+
+      - name: Update upstream
+        if: env.NEED_UPDATE == 'true'
+        run: |
+          cd upstream/chrisbanes-skills
+          git checkout "$LATEST_TAG"
+
+      - name: Generate skill
+        if: env.NEED_UPDATE == 'true'
+        run: node scripts/generate-chrisbanes-skills-use.js
+
+      - name: Validate
+        if: env.NEED_UPDATE == 'true'
+        run: node scripts/validate-generated-skill.js
+
+      - name: Commit and push
+        if: env.NEED_UPDATE == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add skills/ upstream/
+          git commit -m "chore: update chrisbanes-skills-use to $LATEST_TAG"
+          git tag -a "$LATEST_TAG" -m "chrisbanes-skills-use $LATEST_TAG"
+          git push origin HEAD:main --follow-tags

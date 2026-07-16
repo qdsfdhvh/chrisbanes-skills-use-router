@@ -5,7 +5,7 @@ const path = require("path");
 
 const repoRoot = path.resolve(__dirname, "..");
 const skillName = "chrisbanes-skills-use";
-const defaultSkillDir = path.join(repoRoot, "dist", skillName);
+const defaultSkillDir = path.join(repoRoot, "skills", skillName);
 
 function fail(message) {
   console.error(`error: ${message}`);
@@ -110,7 +110,12 @@ function validate(skillDir) {
     fail("agents/openai.yaml default prompt must mention the skill name");
   }
 
-  console.log(`Validated ${path.relative(repoRoot, skillDir)} with ${referenceDocs.length} reference docs`);
+  const version = readScalar(frontmatter, "version");
+  if (!version || version === "{{VERSION}}") {
+    fail("version field must be a concrete version (not an unresolved template placeholder)");
+  }
+
+  console.log(`Validated ${path.relative(repoRoot, skillDir)} with ${referenceDocs.length} reference docs (v${version})`);
 }
 
 const skillDir = process.argv[2] ? path.resolve(process.argv[2]) : defaultSkillDir;

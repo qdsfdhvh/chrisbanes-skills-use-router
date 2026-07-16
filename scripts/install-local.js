@@ -79,7 +79,7 @@ function main() {
   const distDir = resolveFromRoot(
     process.env.CHRISBANES_SKILLS_USE_DIST_DIR ||
       dotEnv.CHRISBANES_SKILLS_USE_DIST_DIR ||
-      "dist/chrisbanes-skills-use",
+      "skills/chrisbanes-skills-use",
   );
   const targets = parseTargets(rawTargets);
 
