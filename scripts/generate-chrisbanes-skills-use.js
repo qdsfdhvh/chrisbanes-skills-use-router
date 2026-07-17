@@ -73,52 +73,16 @@ function listSkillDirs(sourceDir) {
     .sort((a, b) => path.basename(a).localeCompare(path.basename(b)));
 }
 
-function extractFrontmatter(skillPath) {
-  const content = fs.readFileSync(skillPath, "utf8");
-  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
-  if (!match) {
-    throw new Error(`Missing YAML frontmatter: ${skillPath}`);
-  }
-  return match[1].trimEnd();
-}
-
 function stripFrontmatter(content) {
-  return content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "");
-}
-
-function stripYamlQuotes(value) {
-  if (value.length >= 2) {
-    const quote = value[0];
-    if ((quote === "\"" || quote === "'") && value[value.length - 1] === quote) {
-      return value.slice(1, -1);
-    }
+  const lines = content.split("\n");
+  if (lines[0]?.trim() !== "---") {
+    return content;
   }
-  return value;
-}
-
-function readScalar(frontmatter, key) {
-  const lines = frontmatter.split(/\r?\n/);
-  const prefix = `${key}:`;
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    if (!line.startsWith(prefix)) {
-      continue;
-    }
-    const raw = line.slice(prefix.length).trim();
-    if (raw === "|" || raw === ">") {
-      const block = [];
-      for (let j = i + 1; j < lines.length; j += 1) {
-        const next = lines[j];
-        if (!next.startsWith(" ") && !next.startsWith("\t")) {
-          break;
-        }
-        block.push(next.trim());
-      }
-      return block.join(raw === ">" ? " " : "\n").trim();
-    }
-    return stripYamlQuotes(raw);
+  const end = lines.indexOf("---", 1);
+  if (end === -1) {
+    return content;
   }
-  return "";
+  return lines.slice(end + 1).join("\n");
 }
 
 function transformMarkdownContent(content, stripHead) {
@@ -150,36 +114,6 @@ function copyDir(src, dest) {
   }
 }
 
-function categoryForSkill(name) {
-  if (name === "using-chrisbanes-skills") return "Primary Router";
-  if (name.startsWith("compose-")) return "Jetpack Compose";
-  if (name.startsWith("kotlin-")) return "Kotlin";
-  if (name === "shepherd") return "Workflow";
-  return "Other";
-}
-
-function compareSkills(a, b) {
-  if (a.name === "using-chrisbanes-skills") return -1;
-  if (b.name === "using-chrisbanes-skills") return 1;
-  return a.name.localeCompare(b.name);
-}
-
-function escapeTableCell(value) {
-  return value.replace(/\r?\n/g, " ").replace(/\|/g, "\\|").trim();
-}
-
-function renderSkillIndex(skills) {
-  const rows = [
-    "| Category | Skill | Reference doc | Description |",
-    "| --- | --- | --- | --- |",
-  ];
-  for (const skill of skills) {
-    rows.push(
-      `| ${skill.category} | \`${skill.name}\` | \`${skill.docPath}\` | ${escapeTableCell(skill.description)} |`,
-    );
-  }
-  return rows.join("\n");
-}
 
 function writeOpenAiYaml(outputDir) {
   const agentsDir = path.join(outputDir, "agents");
@@ -214,38 +148,24 @@ function main() {
   }
 
   const skillDirs = listSkillDirs(sourceDir);
-  const skills = skillDirs.map((dir) => {
-    const skillPath = path.join(dir, "SKILL.md");
-    const frontmatter = extractFrontmatter(skillPath);
-    const name = readScalar(frontmatter, "name") || path.basename(dir);
-    const description = readScalar(frontmatter, "description");
-    const docPath = path.posix.join("references", path.basename(dir), "DOC.md");
-    return {
-      category: categoryForSkill(name),
-      description,
-      dir,
-      docPath,
-      name,
-    };
-  }).sort(compareSkills);
 
   fs.rmSync(outputDir, { recursive: true, force: true });
   fs.mkdirSync(outputDir, { recursive: true });
 
   const referencesDir = path.join(outputDir, "references");
-  for (const skill of skills) {
-    copyDir(skill.dir, path.join(referencesDir, path.basename(skill.dir)));
+  for (const dir of skillDirs) {
+    copyDir(dir, path.join(referencesDir, path.basename(dir)));
   }
 
   const upstreamVersion = readUpstreamVersion(sourceDir);
   const template = fs.readFileSync(templatePath, "utf8");
-  const generated = template.replaceAll("{{VERSION}}", upstreamVersion).replaceAll("{{SKILL_INDEX}}", renderSkillIndex(skills));
+  const generated = template.replaceAll("{{VERSION}}", upstreamVersion);
 
   fs.writeFileSync(path.join(outputDir, "SKILL.md"), generated);
   writeOpenAiYaml(outputDir);
   copyUpstreamLicense(sourceDir, outputDir);
 
-  console.log(`Generated ${skills.length} skills (upstream ${upstreamVersion}) into ${path.relative(repoRoot, outputDir)}`);
+  console.log(`Generated ${skillDirs.length} skills (upstream ${upstreamVersion}) into ${path.relative(repoRoot, outputDir)}`);
   console.log(`Router skill: ${path.relative(repoRoot, path.join(outputDir, "SKILL.md"))}`);
   console.log(`Reference docs: ${path.relative(repoRoot, referencesDir)}`);
 }
