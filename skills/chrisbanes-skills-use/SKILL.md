@@ -1,6 +1,6 @@
 ---
 name: chrisbanes-skills-use
-version: "2026.7.30"
+version: "2026.8.1"
 description: "Use this skill when a Kotlin, Android, Jetpack Compose, Compose Multiplatform, coroutine, Flow, KMP, UI testing, UI API design, recomposition/performance, focus/navigation, animation, or PR shepherding task may benefit from chrisbanes/skills but installing or triggering every focused skill would be too broad. Route broad or unclear tasks through the copied using-chrisbanes-skills guide, then read only the focused reference docs it selects."
 ---
 
@@ -54,6 +54,6 @@ contain the actual guidance, examples, and cross-skill routing. After
 | Kotlin | `kotlin-functions` | `references/kotlin-functions/DOC.md` | Use when choosing Kotlin member, top-level, extension, factory, or service functions for String, primitive, collection, Flow, framework, or third-party receivers. |
 | Kotlin | `kotlin-multiplatform-expect-actual` | `references/kotlin-multiplatform-expect-actual/DOC.md` | Use when designing Kotlin Multiplatform expect/actual or interface boundaries for platform services, native SDKs, source sets, Compose Multiplatform UI, permissions, files, settings, sensors, or platform interop. |
 | Kotlin | `kotlin-types-value-class` | `references/kotlin-types-value-class/DOC.md` | Use when writing or reviewing Kotlin type declarations to choose @JvmInline value class over data class where appropriate, including Compose stability implications. |
-| Other | `run-github-project` | `references/run-github-project/DOC.md` | Use when asked to plan and execute the next authorized issue or drain authorized issues from a configured GitHub Project through implementation, review, merge, and reconciliation. |
+| Other | `run-github-project` | `references/run-github-project/DOC.md` | Use when asked to reconcile GitHub Project epics or human checkpoints, triage Backlog work, plan and execute the next authorized issue, or drain authorized issues through implementation, review, merge, and reconciliation. |
 | Workflow | `shepherd` | `references/shepherd/DOC.md` | Use when asked to shepherd, babysit, monitor, or poll open pull requests or merge requests — including triaging review comments, detecting CI failures, fixing trivial CI issues, and keeping PRs/MRs moving without manual intervention. |
-| Other | `to-plan` | `references/to-plan/DOC.md` | Use when one ready GitHub issue needs a repository-aware implementation plan published as a single issue comment for a later implementation workflow. |
+| Other | `to-plan` | `references/to-plan/DOC.md` | Use when one ready GitHub issue or one explicitly confirmed conversation specification needs a repository-aware implementation plan for a later implementation workflow. |

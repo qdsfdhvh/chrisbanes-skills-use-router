@@ -28,11 +28,42 @@ DEFAULT_PROJECT_ARGUMENTS = (
     "maintainer",
 )
 DEFAULT_STATUS_ARGUMENTS = (
+    "--backlog-status",
+    "Backlog",
     "--ready-status",
     "Ready",
     "--in-progress-status",
     "In progress",
+    "--needs-triage-label",
+    "needs-triage",
+    "--epic-label",
+    "epic",
+    "--human-work-label",
+    "ready-for-human",
 )
+
+
+def implementation_plan(number: int, **overrides: object) -> dict:
+    result = {
+        "commentId": f"IC_plan_{number}",
+        "permalink": (
+            f"https://github.com/acme/repo/issues/{number}#issuecomment-plan"
+        ),
+        "author": "chris",
+        "digest": f"sha256:plan-{number}",
+        "createdAt": "2026-07-28T09:00:00Z",
+        "publishedAt": "2026-07-28T09:00:00Z",
+        "updatedAt": "2026-07-28T09:00:00Z",
+        "plannedBranch": "main",
+        "plannedSha": f"base-{number}",
+        "markerVersion": 2,
+        "revision": 1,
+        "supersedes": None,
+        "replanRequest": None,
+        "isMinimized": False,
+    }
+    result.update(overrides)
+    return result
 
 
 def run_ranker(items: list[dict], *arguments: str) -> tuple[int, dict]:
@@ -84,17 +115,23 @@ def ticket(number: int, **overrides: object) -> dict:
             "status": "Ready",
             "wasAutomated": False,
         },
-        "implementationPlan": {
-            "commentId": f"IC_plan_{number}",
-            "permalink": f"https://github.com/acme/repo/issues/{number}#issuecomment-plan",
-            "author": "chris",
-            "digest": f"sha256:plan-{number}",
-            "createdAt": "2026-07-28T09:00:00Z",
-            "updatedAt": "2026-07-28T09:00:00Z",
-            "plannedBranch": "main",
-            "plannedSha": f"base-{number}",
-        },
+        "implementationPlans": [implementation_plan(number)],
     }
+    if "implementationPlan" in overrides:
+        result.pop("implementationPlans")
+    result.update(overrides)
+    return result
+
+
+def backlog_ticket(number: int, **overrides: object) -> dict:
+    result = ticket(
+        number,
+        projectStatus="Backlog",
+        labels=["needs-triage"],
+        planningTransition=None,
+        readyTransition=None,
+        implementationPlan=None,
+    )
     result.update(overrides)
     return result
 
@@ -116,12 +153,341 @@ def pull_request(number: int, **overrides: object) -> dict:
     return result
 
 
+def replan_request(
+    number: int,
+    *,
+    disposition: str = "autonomous-replan",
+    **overrides: object,
+) -> dict:
+    result = {
+        "commentId": f"IC_replan_{number}",
+        "permalink": (
+            f"https://github.com/acme/repo/issues/{number}#issuecomment-replan"
+        ),
+        "author": "chris",
+        "createdAt": "2026-07-28T11:00:00Z",
+        "disposition": disposition,
+        "previousPlanPermalink": (
+            f"https://github.com/acme/repo/issues/{number}#issuecomment-plan"
+        ),
+        "previousPlanDigest": f"sha256:plan-{number}",
+        "baseSha": f"base-{number}",
+        "implementationHeadSha": None,
+        "pullRequestUrl": None,
+    }
+    result.update(overrides)
+    return result
+
+
 def first_entry(output: dict) -> dict:
     entries = output["claims"] or output["candidates"]
     return entries[0]
 
 
 class RankTicketsTest(unittest.TestCase):
+    def test_selects_the_unique_unsuperseded_plan_revision(self) -> None:
+        old_permalink = (
+            "https://github.com/acme/repo/issues/202#issuecomment-plan-v1"
+        )
+        replan_permalink = (
+            "https://github.com/acme/repo/issues/202#issuecomment-replan"
+        )
+        versioned = ticket(
+            202,
+            implementationPlans=[
+                implementation_plan(
+                    202,
+                    commentId="IC_plan_202_v1",
+                    permalink=old_permalink,
+                    digest="sha256:plan-202-v1",
+                    updatedAt="2026-07-28T13:30:00Z",
+                    markerVersion=1,
+                    isMinimized=True,
+                ),
+                implementation_plan(
+                    202,
+                    commentId="IC_plan_202_v2",
+                    permalink=(
+                        "https://github.com/acme/repo/issues/202#issuecomment-plan-v2"
+                    ),
+                    digest="sha256:plan-202-v2",
+                    createdAt="2026-07-28T13:00:00Z",
+                    publishedAt="2026-07-28T13:00:00Z",
+                    updatedAt="2026-07-28T13:00:00Z",
+                    revision=2,
+                    supersedes=old_permalink,
+                    replanRequest=replan_permalink,
+                ),
+            ],
+            readyTransition={
+                "id": "PVTE_202_ready",
+                "actor": "chris",
+                "createdAt": "2026-07-28T14:00:00Z",
+                "status": "Ready",
+                "wasAutomated": False,
+            },
+        )
+
+        returncode, output = run_ranker([versioned])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual("claim", output["candidates"][0]["action"])
+
+    def test_requeued_ticket_hands_off_after_a_new_plan_revision(self) -> None:
+        old_permalink = (
+            "https://github.com/acme/repo/issues/203#issuecomment-plan-v1"
+        )
+        replan = replan_request(
+            203,
+            previousPlanPermalink=old_permalink,
+            previousPlanDigest="sha256:plan-203-v1",
+        )
+        requeued = ticket(
+            203,
+            projectStatus="Planning",
+            assignees=["chris"],
+            implementationPlans=[
+                implementation_plan(
+                    203,
+                    commentId="IC_plan_203_v1",
+                    permalink=old_permalink,
+                    digest="sha256:plan-203-v1",
+                    updatedAt="2026-07-28T13:30:00Z",
+                    markerVersion=1,
+                    isMinimized=True,
+                ),
+                implementation_plan(
+                    203,
+                    commentId="IC_plan_203_v2",
+                    permalink=(
+                        "https://github.com/acme/repo/issues/203#issuecomment-plan-v2"
+                    ),
+                    digest="sha256:plan-203-v2",
+                    createdAt="2026-07-28T13:00:00Z",
+                    publishedAt="2026-07-28T13:00:00Z",
+                    updatedAt="2026-07-28T13:00:00Z",
+                    revision=2,
+                    supersedes=old_permalink,
+                    replanRequest=replan["permalink"],
+                ),
+            ],
+            replanRequest=replan,
+        )
+        requeued["planningTransition"].update(
+            actor="chris",
+            createdAt="2026-07-28T12:00:00Z",
+        )
+
+        returncode, output = run_ranker([requeued])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual(
+            "resume-planning-handoff",
+            output["claims"][0]["action"],
+        )
+
+        requeued["implementationPlans"][1]["replanRequest"] = None
+        returncode, output = run_ranker([requeued])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["claims"])
+        self.assertEqual(
+            [
+                {
+                    "number": 203,
+                    "reasons": [
+                        "active plan revision does not link the verified "
+                        "replan report",
+                    ],
+                },
+            ],
+            output["blockedPlanningClaims"],
+        )
+
+    def test_assigned_backlog_item_resumes_cleanup_without_consuming_slot(self) -> None:
+        backlog = ticket(
+            200,
+            projectStatus="Backlog",
+            assignees=["chris"],
+            replanRequest=replan_request(200, disposition="human-required"),
+            backlogTransition={
+                "id": "PVTE_200_backlog",
+                "actor": "chris",
+                "createdAt": "2026-07-28T12:00:00Z",
+                "status": "Backlog",
+                "wasAutomated": False,
+            },
+        )
+        implementation = ticket(
+            201,
+            projectStatus="In progress",
+            assignees=["chris"],
+        )
+
+        returncode, output = run_ranker(
+            [backlog, implementation],
+            "--max-claims",
+            "1",
+        )
+
+        self.assertEqual(0, returncode)
+        self.assertEqual(
+            ["resume-backlog-cleanup", "resume-implementation"],
+            [entry["action"] for entry in output["claims"]],
+        )
+
+    def test_keeps_assigned_cleanup_separate_from_unassigned_triage(self) -> None:
+        cleanup = ticket(
+            205,
+            projectStatus="Backlog",
+            assignees=["chris"],
+            replanRequest=replan_request(205, disposition="human-required"),
+            backlogTransition={
+                "id": "PVTE_205_backlog",
+                "actor": "chris",
+                "createdAt": "2026-07-28T12:00:00Z",
+                "status": "Backlog",
+                "wasAutomated": False,
+            },
+        )
+        triage = backlog_ticket(206)
+
+        returncode, output = run_ranker([triage, cleanup])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual(
+            ["resume-backlog-cleanup"],
+            [entry["action"] for entry in output["claims"]],
+        )
+        self.assertEqual(
+            [206],
+            [
+                entry["ticket"]["number"]
+                for entry in output["triageCandidates"]
+            ],
+        )
+
+    def test_backlog_cleanup_ignores_implementation_readiness_changes(self) -> None:
+        backlog = ticket(
+            209,
+            state="CLOSED",
+            projectStatus="Backlog",
+            labels=[],
+            assignees=["chris"],
+            blockedBy=[99],
+            openDescendants=[100],
+            replanRequest=replan_request(209, disposition="human-required"),
+            backlogTransition={
+                "id": "PVTE_209_backlog",
+                "actor": "chris",
+                "createdAt": "2026-07-28T12:00:00Z",
+                "status": "Backlog",
+                "wasAutomated": False,
+            },
+        )
+
+        returncode, output = run_ranker([backlog])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual(
+            "resume-backlog-cleanup",
+            output["claims"][0]["action"],
+        )
+
+    def test_unassigned_backlog_item_waits_for_human_planning_transition(self) -> None:
+        backlog = ticket(
+            204,
+            projectStatus="Backlog",
+            assignees=[],
+            replanRequest=replan_request(204, disposition="human-required"),
+            backlogTransition={
+                "id": "PVTE_204_backlog",
+                "actor": "chris",
+                "createdAt": "2026-07-28T12:00:00Z",
+                "status": "Backlog",
+                "wasAutomated": False,
+            },
+        )
+
+        returncode, output = run_ranker([backlog])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["claims"])
+        self.assertEqual([], output["candidates"])
+        self.assertEqual(
+            [
+                {
+                    "ticket": backlog,
+                    "action": "move-to-planning",
+                },
+            ],
+            output["humanActions"],
+        )
+
+    def test_human_planning_transition_after_backlog_starts_fresh(self) -> None:
+        planning = ticket(
+            205,
+            projectStatus="Planning",
+            assignees=[],
+            replanRequest=replan_request(205, disposition="human-required"),
+            backlogTransition={
+                "id": "PVTE_205_backlog",
+                "actor": "chris",
+                "createdAt": "2026-07-28T12:00:00Z",
+                "status": "Backlog",
+                "wasAutomated": False,
+            },
+            planningTransition={
+                "id": "PVTE_205_planning",
+                "actor": "maintainer",
+                "createdAt": "2026-07-28T15:00:00Z",
+                "status": "Planning",
+                "wasAutomated": False,
+            },
+        )
+
+        returncode, output = run_ranker([planning])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual("plan", output["candidates"][0]["action"])
+
+    def test_broken_plan_revision_chain_is_ineligible(self) -> None:
+        broken = ticket(
+            206,
+            implementationPlans=[
+                implementation_plan(
+                    206,
+                    revision=2,
+                    supersedes=(
+                        "https://github.com/acme/repo/issues/206"
+                        "#issuecomment-missing"
+                    ),
+                ),
+            ],
+        )
+
+        returncode, output = run_ranker([broken])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["candidates"])
+        self.assertIn(
+            "implementation plan chain must have exactly one root",
+            output["excluded"][0]["reasons"][0],
+        )
+
+    def test_ready_handoff_rejects_active_plan_edited_after_transition(self) -> None:
+        handoff = ticket(207)
+        handoff["implementationPlans"][0]["updatedAt"] = "2026-07-28T11:00:00Z"
+
+        returncode, output = run_ranker([handoff])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["candidates"])
+        self.assertIn(
+            "ready transition predates the current implementation plan",
+            output["excluded"][0]["reasons"],
+        )
+
     def test_returns_multiple_claims_and_candidates_up_to_limit(self) -> None:
         implementation = ticket(
             1,
@@ -267,6 +633,272 @@ class RankTicketsTest(unittest.TestCase):
         self.assertEqual(11, first_entry(output)["ticket"]["number"])
         self.assertEqual(
             [{"number": 10, "reasons": ["open descendants ['11', '12']"]}],
+            output["excluded"],
+        )
+
+    def test_ranks_unblocked_backlog_triage_candidates_separately(self) -> None:
+        later = backlog_ticket(12, projectPosition=20)
+        earlier = backlog_ticket(13, projectPosition=2)
+        critical = backlog_ticket(
+            14,
+            projectPriority="Critical",
+            projectPosition=200,
+        )
+        implementation = ticket(15, projectPriority="Low")
+
+        returncode, output = run_ranker(
+            [later, earlier, critical, implementation],
+        )
+
+        self.assertEqual(0, returncode)
+        self.assertEqual(
+            [14, 13, 12],
+            [
+                entry["ticket"]["number"]
+                for entry in output["triageCandidates"]
+            ],
+        )
+        self.assertEqual(
+            ["triage", "triage", "triage"],
+            [entry["action"] for entry in output["triageCandidates"]],
+        )
+        self.assertEqual(
+            [15],
+            [entry["ticket"]["number"] for entry in output["candidates"]],
+        )
+
+    def test_parks_backlog_item_with_open_native_blocker(self) -> None:
+        blocked = backlog_ticket(16, blockedBy=[17])
+
+        returncode, output = run_ranker([blocked])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["triageCandidates"])
+        self.assertEqual(
+            [
+                {
+                    "ticket": blocked,
+                    "role": "triage",
+                    "reasons": ["blocked by ['17']"],
+                },
+            ],
+            output["parkedBlocked"],
+        )
+        self.assertEqual([], output["excluded"])
+
+    def test_parks_backlog_parent_with_open_descendant(self) -> None:
+        parent = backlog_ticket(18, openDescendants=[19])
+
+        returncode, output = run_ranker([parent])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["triageCandidates"])
+        self.assertEqual(
+            [
+                {
+                    "ticket": parent,
+                    "role": "triage",
+                    "reasons": ["open descendants ['19']"],
+                },
+            ],
+            output["parkedBlocked"],
+        )
+
+    def test_unblocked_epic_is_ready_for_reconciliation(self) -> None:
+        epic = backlog_ticket(19, labels=["epic"])
+
+        returncode, output = run_ranker([epic])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual(
+            [{"ticket": epic, "action": "close-epic"}],
+            output["readyEpics"],
+        )
+
+    def test_parks_epic_until_its_native_descendants_close(self) -> None:
+        epic = backlog_ticket(
+            20,
+            labels=["epic"],
+            openDescendants=[21],
+        )
+
+        returncode, output = run_ranker([epic])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["readyEpics"])
+        self.assertEqual(
+            [
+                {
+                    "ticket": epic,
+                    "role": "epic",
+                    "reasons": ["open descendants ['21']"],
+                },
+            ],
+            output["parkedBlocked"],
+        )
+
+    def test_human_gated_epic_is_never_automatically_closed(self) -> None:
+        epic = backlog_ticket(
+            21,
+            labels=["epic", "ready-for-human"],
+        )
+
+        returncode, output = run_ranker([epic])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["readyEpics"])
+        self.assertEqual(
+            [{"ticket": epic, "action": "perform-human-work"}],
+            output["humanActions"],
+        )
+
+    def test_human_work_waits_for_native_blockers(self) -> None:
+        human_work = backlog_ticket(
+            22,
+            labels=["ready-for-human"],
+            blockedBy=[20],
+        )
+
+        returncode, output = run_ranker([human_work])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["humanActions"])
+        self.assertEqual(
+            [
+                {
+                    "ticket": human_work,
+                    "role": "human",
+                    "reasons": ["blocked by ['20']"],
+                },
+            ],
+            output["parkedBlocked"],
+        )
+
+    def test_current_user_assignment_does_not_turn_human_work_into_cleanup(self) -> None:
+        human_work = backlog_ticket(
+            23,
+            labels=["ready-for-human"],
+            assignees=["chris"],
+        )
+
+        returncode, output = run_ranker([human_work])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["claims"])
+        self.assertEqual([], output["blockedPlanningClaims"])
+        self.assertEqual(
+            [{"ticket": human_work, "action": "perform-human-work"}],
+            output["humanActions"],
+        )
+
+    def test_malformed_assigned_human_work_is_not_a_planning_claim(self) -> None:
+        human_work = backlog_ticket(
+            24,
+            labels=["ready-for-human"],
+            assignees=["chris"],
+        )
+        del human_work["projectPosition"]
+
+        returncode, output = run_ranker([human_work])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["blockedPlanningClaims"])
+        self.assertEqual(
+            [{"number": 24, "reasons": ["ticket 24: missing projectPosition"]}],
+            output["excluded"],
+        )
+
+    def test_ready_for_agent_backlog_item_requests_planning_transition(self) -> None:
+        ready = backlog_ticket(22, labels=["ready-for-agent"])
+
+        returncode, output = run_ranker([ready])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["triageCandidates"])
+        self.assertEqual([], output["parkedBlocked"])
+        self.assertEqual(
+            [{"ticket": ready, "action": "move-to-planning"}],
+            output["humanActions"],
+        )
+
+    def test_human_action_does_not_hide_runnable_agent_work(self) -> None:
+        human_work = backlog_ticket(24, labels=["ready-for-human"])
+        agent_work = ticket(25)
+
+        returncode, output = run_ranker([human_work, agent_work])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual(
+            [25],
+            [entry["ticket"]["number"] for entry in output["candidates"]],
+        )
+        self.assertEqual(
+            [24],
+            [entry["ticket"]["number"] for entry in output["humanActions"]],
+        )
+
+    def test_rejects_conflicting_backlog_action_labels(self) -> None:
+        conflicting = backlog_ticket(
+            26,
+            labels=["ready-for-agent", "ready-for-human"],
+        )
+        implementation_epic = backlog_ticket(
+            27,
+            labels=["epic", "ready-for-agent"],
+        )
+
+        returncode, output = run_ranker([conflicting, implementation_epic])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual(
+            [
+                {"number": 26, "reasons": ["conflicting Backlog action labels"]},
+                {
+                    "number": 27,
+                    "reasons": ["epic cannot be ready for agent implementation"],
+                },
+            ],
+            output["excluded"],
+        )
+
+    def test_does_not_automatically_triage_assigned_backlog_item(self) -> None:
+        assigned = backlog_ticket(23, assignees=["maintainer"])
+
+        returncode, output = run_ranker([assigned])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["triageCandidates"])
+        self.assertEqual(
+            [{"number": 23, "reasons": ["assigned to ['maintainer']"]}],
+            output["excluded"],
+        )
+
+    def test_does_not_automatically_triage_backlog_item_with_open_pr(self) -> None:
+        with_pull_request = backlog_ticket(
+            24,
+            openPullRequests=[
+                {
+                    "number": 240,
+                    "url": "https://github.com/acme/repo/pull/240",
+                    "closesIssue": True,
+                },
+            ],
+        )
+
+        returncode, output = run_ranker([with_pull_request])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["triageCandidates"])
+        self.assertEqual(
+            [
+                {
+                    "number": 24,
+                    "reasons": [
+                        "has open implementation PRs "
+                        "['https://github.com/acme/repo/pull/240']",
+                    ],
+                },
+            ],
             output["excluded"],
         )
 
@@ -457,6 +1089,17 @@ class RankTicketsTest(unittest.TestCase):
 
         self.assertEqual(2, result.returncode)
         self.assertIn("--priority", result.stderr)
+
+    def test_status_names_must_be_unique(self) -> None:
+        returncode, output = run_ranker(
+            [],
+            "--backlog-status",
+            "Ready",
+        )
+
+        self.assertEqual(2, returncode)
+        self.assertEqual("invalid-input", output["reason"])
+        self.assertEqual("project statuses must be unique", output["error"])
 
     def test_assignee_objects_use_login_as_identity(self) -> None:
         claimed = ticket(
@@ -836,6 +1479,7 @@ class RankTicketsTest(unittest.TestCase):
             197,
             projectStatus="Planning",
             assignees=["chris"],
+            replanRequest=replan_request(197),
         )
         requeued["planningTransition"].update(
             actor="chris",
@@ -847,9 +1491,9 @@ class RankTicketsTest(unittest.TestCase):
         self.assertEqual(0, returncode)
         self.assertEqual("resume-planning", output["claims"][0]["action"])
 
-    def test_runner_requeue_requires_verified_prior_ready_handoff(self) -> None:
+    def test_runner_requeue_requires_verified_replan_report(self) -> None:
         invalid_requeue = ticket(
-            198,
+            199,
             projectStatus="Planning",
             assignees=["chris"],
         )
@@ -857,7 +1501,72 @@ class RankTicketsTest(unittest.TestCase):
             actor="chris",
             createdAt="2026-07-28T12:00:00Z",
         )
-        invalid_requeue["implementationPlan"]["updatedAt"] = "2026-07-28T11:00:00Z"
+
+        returncode, output = run_ranker([invalid_requeue])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["claims"])
+        self.assertEqual(
+            [
+                {
+                    "number": 199,
+                    "reasons": [
+                        "runner Planning requeue lacks a verified replan report",
+                    ],
+                },
+            ],
+            output["blockedPlanningClaims"],
+        )
+
+    def test_runner_requeue_requires_report_to_name_retained_pr(self) -> None:
+        invalid_requeue = ticket(
+            208,
+            projectStatus="Planning",
+            assignees=["chris"],
+            replanRequest=replan_request(
+                208,
+                pullRequestUrl="https://github.com/acme/repo/pull/208",
+                implementationHeadSha="wrong-head",
+            ),
+            openPullRequests=[pull_request(208)],
+        )
+        invalid_requeue["planningTransition"].update(
+            actor="chris",
+            createdAt="2026-07-28T12:00:00Z",
+        )
+
+        returncode, output = run_ranker([invalid_requeue])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual([], output["claims"])
+        self.assertIn(
+            "runner Planning requeue lacks verified retained PR evidence",
+            output["blockedPlanningClaims"][0]["reasons"],
+        )
+
+        invalid_requeue["replanRequest"]["implementationHeadSha"] = "head-208"
+        returncode, output = run_ranker([invalid_requeue])
+
+        self.assertEqual(0, returncode)
+        self.assertEqual("resume-planning", output["claims"][0]["action"])
+
+    def test_runner_requeue_requires_verified_prior_ready_handoff(self) -> None:
+        invalid_requeue = ticket(
+            198,
+            projectStatus="Planning",
+            assignees=["chris"],
+            replanRequest=replan_request(198),
+        )
+        invalid_requeue["planningTransition"].update(
+            actor="chris",
+            createdAt="2026-07-28T12:00:00Z",
+        )
+        invalid_requeue["implementationPlans"][0]["publishedAt"] = (
+            "2026-07-28T11:00:00Z"
+        )
+        invalid_requeue["implementationPlans"][0]["updatedAt"] = (
+            "2026-07-28T11:00:00Z"
+        )
 
         returncode, output = run_ranker([invalid_requeue])
 

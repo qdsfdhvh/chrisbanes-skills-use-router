@@ -16,6 +16,12 @@ class InputError(ValueError):
 
 
 IMPLEMENTATION_ACTIONS = {"resume-pr", "resume-implementation"}
+AGENT_WORK_LABEL = "ready-for-agent"
+CLAIM_ACTION_RANK = {
+    "resume-backlog-cleanup": 0,
+    "resume-pr": 1,
+    "resume-implementation": 1,
+}
 CANDIDATE_ACTION_ORDER = ("resume-pr", "resume-implementation", "plan")
 CANDIDATE_OUTPUT_ACTIONS = {"resume-implementation": "claim"}
 
@@ -47,6 +53,11 @@ def parse_args() -> argparse.Namespace:
         help="GitHub login allowed to authorize Planning transitions. Repeat as needed.",
     )
     parser.add_argument(
+        "--backlog-status",
+        default="Backlog",
+        help="Configured Project status display name for untriaged or human work.",
+    )
+    parser.add_argument(
         "--planning-status",
         default="Planning",
         help="Configured GitHub Project status display name that queues planning.",
@@ -60,6 +71,21 @@ def parse_args() -> argparse.Namespace:
         "--in-progress-status",
         default="In progress",
         help="Configured GitHub Project status display name that marks an item active.",
+    )
+    parser.add_argument(
+        "--needs-triage-label",
+        default="needs-triage",
+        help="Configured issue label that queues an unblocked Backlog item for triage.",
+    )
+    parser.add_argument(
+        "--epic-label",
+        required=True,
+        help="Configured issue label that identifies a non-implementation parent.",
+    )
+    parser.add_argument(
+        "--human-work-label",
+        required=True,
+        help="Configured issue label that identifies work a human must perform.",
     )
     parser.add_argument(
         "--priority",
@@ -130,7 +156,12 @@ def timestamp(value: Any, field: str, number: Any) -> datetime:
     return result
 
 
-def pull_request_values(values: Any, number: Any) -> list[dict[str, Any]]:
+def pull_request_values(
+    values: Any,
+    number: Any,
+    *,
+    require_execution_fields: bool,
+) -> list[dict[str, Any]]:
     if not isinstance(values, list):
         raise InputError(f"ticket {number}: openPullRequests must be an array")
     result: list[dict[str, Any]] = []
@@ -148,8 +179,15 @@ def pull_request_values(values: Any, number: Any) -> list[dict[str, Any]]:
             raise InputError(
                 f"ticket {number}: pull request number must be a positive integer",
             )
+        nonempty_string(value.get("url"), "pull request url", number)
+        if not isinstance(value.get("closesIssue"), bool):
+            raise InputError(
+                f"ticket {number}: pull request closesIssue must be a boolean",
+            )
+        if not require_execution_fields:
+            result.append(value)
+            continue
         for field in (
-            "url",
             "author",
             "headRepository",
             "headRefName",
@@ -158,10 +196,6 @@ def pull_request_values(values: Any, number: Any) -> list[dict[str, Any]]:
             "baseRefName",
         ):
             nonempty_string(value.get(field), f"pull request {field}", number)
-        if not isinstance(value.get("closesIssue"), bool):
-            raise InputError(
-                f"ticket {number}: pull request closesIssue must be a boolean",
-            )
         if not isinstance(value.get("isDraft"), bool):
             raise InputError(
                 f"ticket {number}: pull request isDraft must be a boolean",
@@ -178,6 +212,19 @@ def parse_project_position(value: Any, number: Any) -> float:
     if value < 0:
         raise InputError(f"ticket {number}: projectPosition must be a non-negative number")
     return float(value)
+
+
+def project_priority_rank(
+    project_priority: str | None,
+    priorities: tuple[str, ...],
+) -> tuple[int, str | None]:
+    if project_priority is not None and project_priority not in priorities:
+        return len(priorities), f"unknown project priority {project_priority!r}"
+    return (
+        priorities.index(project_priority)
+        if project_priority is not None
+        else len(priorities)
+    ), None
 
 
 def require_ticket_shape(ticket: Any) -> dict[str, Any]:
@@ -199,11 +246,14 @@ def require_ticket_shape(ticket: Any) -> dict[str, Any]:
         "openPullRequests",
         "planningTransition",
         "readyTransition",
-        "implementationPlan",
     }
     missing = sorted(required - ticket.keys())
     if missing:
         raise InputError(f"ticket {ticket.get('number', '?')}: missing {', '.join(missing)}")
+    if "implementationPlan" not in ticket and "implementationPlans" not in ticket:
+        raise InputError(
+            f"ticket {ticket.get('number', '?')}: missing implementationPlans",
+        )
     number = ticket["number"]
     if not isinstance(number, int) or isinstance(number, bool):
         raise InputError(f"ticket {number!r}: number must be an integer")
@@ -252,10 +302,229 @@ def parse_transition(value: Any, field: str, number: Any) -> dict[str, Any]:
     return result
 
 
+def parse_replan_request(value: Any, number: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise InputError(f"ticket {number}: replanRequest must be an object")
+    result = {
+        field: nonempty_string(
+            value.get(field),
+            f"replanRequest.{field}",
+            number,
+        )
+        for field in (
+            "commentId",
+            "permalink",
+            "author",
+            "disposition",
+            "previousPlanPermalink",
+            "previousPlanDigest",
+            "baseSha",
+        )
+    }
+    result["createdAt"] = timestamp(
+        value.get("createdAt"),
+        "replanRequest.createdAt",
+        number,
+    )
+    for field in ("implementationHeadSha", "pullRequestUrl"):
+        optional = value.get(field)
+        if optional is not None and (not isinstance(optional, str) or not optional):
+            raise InputError(
+                f"ticket {number}: replanRequest.{field} "
+                "must be a non-empty string or null",
+            )
+        result[field] = optional
+    if result["disposition"] not in ("autonomous-replan", "human-required"):
+        raise InputError(
+            f"ticket {number}: replanRequest.disposition must be "
+            "'autonomous-replan' or 'human-required'",
+        )
+    return result
+
+
+def parse_implementation_plan_chain(
+    ticket: dict[str, Any],
+    number: Any,
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    values = ticket.get("implementationPlans")
+    if values is None:
+        legacy = ticket.get("implementationPlan")
+        if legacy is None:
+            return [], None
+        if not isinstance(legacy, dict):
+            raise InputError(
+                f"ticket {number}: implementationPlan must be an object or null",
+            )
+        values = [
+            {
+                **legacy,
+                "markerVersion": 1,
+                "revision": 1,
+                "supersedes": None,
+                "replanRequest": None,
+                "publishedAt": legacy.get("updatedAt"),
+                "isMinimized": False,
+            },
+        ]
+    if not isinstance(values, list):
+        raise InputError(f"ticket {number}: implementationPlans must be an array")
+
+    plans: list[dict[str, Any]] = []
+    for value in values:
+        if not isinstance(value, dict):
+            raise InputError(
+                f"ticket {number}: implementationPlans entries must be objects",
+            )
+        plan = dict(value)
+        for field in (
+            "commentId",
+            "permalink",
+            "author",
+            "digest",
+            "plannedBranch",
+            "plannedSha",
+        ):
+            nonempty_string(plan.get(field), f"implementationPlan.{field}", number)
+        created_at = timestamp(
+            plan.get("createdAt"),
+            "implementationPlan.createdAt",
+            number,
+        )
+        published_at = timestamp(
+            plan.get("publishedAt"),
+            "implementationPlan.publishedAt",
+            number,
+        )
+        updated_at = timestamp(
+            plan.get("updatedAt"),
+            "implementationPlan.updatedAt",
+            number,
+        )
+        if published_at < created_at or updated_at < published_at:
+            raise InputError(
+                f"ticket {number}: implementation plan timestamps are out of order",
+            )
+        marker_version = plan.get("markerVersion")
+        revision = plan.get("revision")
+        if marker_version not in (1, 2):
+            raise InputError(
+                f"ticket {number}: implementationPlan.markerVersion must be 1 or 2",
+            )
+        if (
+            not isinstance(revision, int)
+            or isinstance(revision, bool)
+            or revision <= 0
+        ):
+            raise InputError(
+                f"ticket {number}: implementationPlan.revision "
+                "must be a positive integer",
+            )
+        for field in ("supersedes", "replanRequest"):
+            optional = plan.get(field)
+            if optional is not None and (
+                not isinstance(optional, str) or not optional
+            ):
+                raise InputError(
+                    f"ticket {number}: implementationPlan.{field} "
+                    "must be a non-empty string or null",
+                )
+        if not isinstance(plan.get("isMinimized"), bool):
+            raise InputError(
+                f"ticket {number}: implementationPlan.isMinimized "
+                "must be a boolean",
+            )
+        if marker_version == 1 and (
+            revision != 1
+            or plan.get("supersedes") is not None
+            or plan.get("replanRequest") is not None
+        ):
+            raise InputError(
+                f"ticket {number}: a v1 implementation plan must be a revision-one root",
+            )
+        plans.append(plan)
+
+    if not plans:
+        return [], None
+
+    permalinks = [plan["permalink"] for plan in plans]
+    comment_ids = [plan["commentId"] for plan in plans]
+    revisions = [plan["revision"] for plan in plans]
+    if len(set(permalinks)) != len(permalinks):
+        raise InputError(f"ticket {number}: duplicate implementation plan permalink")
+    if len(set(comment_ids)) != len(comment_ids):
+        raise InputError(f"ticket {number}: duplicate implementation plan comment ID")
+    if len(set(revisions)) != len(revisions):
+        raise InputError(f"ticket {number}: duplicate implementation plan revision")
+
+    chain = sorted(plans, key=lambda plan: plan["revision"])
+    if (
+        chain[0]["supersedes"] is not None
+        or any(plan["supersedes"] is None for plan in chain[1:])
+    ):
+        raise InputError(
+            f"ticket {number}: implementation plan chain must have exactly one root",
+        )
+    if [plan["revision"] for plan in chain] != list(range(1, len(chain) + 1)):
+        raise InputError(
+            f"ticket {number}: implementation plan revisions must be contiguous",
+        )
+    for parent, child in zip(chain, chain[1:]):
+        if child["supersedes"] == parent["permalink"]:
+            continue
+        if child["supersedes"] not in permalinks:
+            raise InputError(
+                f"ticket {number}: implementation plan revision "
+                f"{child['revision']} has a missing predecessor",
+            )
+        raise InputError(f"ticket {number}: implementation plan chain forks")
+    active = chain[-1]
+    if active["isMinimized"]:
+        raise InputError(
+            f"ticket {number}: active implementation plan is minimized",
+        )
+    return plans, active
+
+
+def analyze_common_ticket(
+    ticket: dict[str, Any],
+    priorities: tuple[str, ...],
+    *,
+    require_execution_pr_fields: bool,
+) -> dict[str, Any]:
+    number = ticket["number"]
+    priority_rank, priority_error = project_priority_rank(
+        ticket["projectPriority"],
+        priorities,
+    )
+    return {
+        "assignees": assignee_values(ticket["assignees"], number),
+        "labels": string_values(ticket["labels"], "labels", number),
+        "blockers": string_values(ticket["blockedBy"], "blockedBy", number),
+        "openDescendants": string_values(
+            ticket["openDescendants"],
+            "openDescendants",
+            number,
+        ),
+        "pullRequests": pull_request_values(
+            ticket["openPullRequests"],
+            number,
+            require_execution_fields=require_execution_pr_fields,
+        ),
+        "projectPosition": parse_project_position(
+            ticket["projectPosition"],
+            number,
+        ),
+        "priorityRank": priority_rank,
+        "errors": [priority_error] if priority_error is not None else [],
+        "exclusions": [],
+    }
+
+
 def analyze_ticket(
     ticket: dict[str, Any],
     *,
     current_user: str,
+    backlog_status: str,
     planning_status: str,
     ready_status: str,
     in_progress_status: str,
@@ -265,22 +534,28 @@ def analyze_ticket(
     execution_approvers: tuple[str, ...],
 ) -> dict[str, Any]:
     number = ticket["number"]
-    assignees = assignee_values(ticket["assignees"], number)
-    labels = string_values(ticket["labels"], "labels", number)
-    blockers = string_values(ticket["blockedBy"], "blockedBy", number)
-    open_descendants = string_values(
-        ticket["openDescendants"],
-        "openDescendants",
-        number,
+    common = analyze_common_ticket(
+        ticket,
+        priorities,
+        require_execution_pr_fields=True,
     )
-    pull_requests = pull_request_values(ticket["openPullRequests"], number)
-    project_position = parse_project_position(ticket["projectPosition"], number)
+    assignees = common["assignees"]
+    labels = common["labels"]
+    blockers = common["blockers"]
+    open_descendants = common["openDescendants"]
+    pull_requests = common["pullRequests"]
+    project_position = common["projectPosition"]
+    priority_rank = common["priorityRank"]
     project_status = ticket["projectStatus"]
+    assigned_to_current_user = current_user in assignees
+    recovering_backlog_cleanup = (
+        project_status == backlog_status and assigned_to_current_user
+    )
 
-    errors: list[str] = []
-    exclusions: list[str] = []
-    if "ready-for-agent" not in labels:
-        exclusions.append("missing ready-for-agent label")
+    errors = common["errors"]
+    exclusions = common["exclusions"]
+    if AGENT_WORK_LABEL not in labels and not recovering_backlog_cleanup:
+        exclusions.append(f"missing {AGENT_WORK_LABEL} label")
 
     planning_transition = parse_transition(
         ticket["planningTransition"],
@@ -308,31 +583,23 @@ def analyze_ticket(
             f"{planning_transition['actor']!r} is not approved",
         )
 
-    implementation_plan = ticket["implementationPlan"]
+    implementation_plans, implementation_plan = parse_implementation_plan_chain(
+        ticket,
+        number,
+    )
+    ticket = {
+        **ticket,
+        "implementationPlan": implementation_plan,
+        "implementationPlans": implementation_plans,
+    }
     plan_is_usable = False
     plan_is_current_in_planning = False
+    plan_published_at: datetime | None = None
     plan_updated_at: datetime | None = None
     if implementation_plan is not None:
-        if not isinstance(implementation_plan, dict):
-            raise InputError(
-                f"ticket {number}: implementationPlan must be an object or null",
-            )
-        for field in (
-            "commentId",
-            "permalink",
-            "author",
-            "digest",
-            "plannedBranch",
-            "plannedSha",
-        ):
-            nonempty_string(
-                implementation_plan.get(field),
-                f"implementationPlan.{field}",
-                number,
-            )
-        plan_created_at = timestamp(
-            implementation_plan.get("createdAt"),
-            "implementationPlan.createdAt",
+        plan_published_at = timestamp(
+            implementation_plan.get("publishedAt"),
+            "implementationPlan.publishedAt",
             number,
         )
         plan_updated_at = timestamp(
@@ -340,11 +607,6 @@ def analyze_ticket(
             "implementationPlan.updatedAt",
             number,
         )
-        if plan_updated_at < plan_created_at:
-            raise InputError(
-                f"ticket {number}: implementationPlan.updatedAt "
-                "precedes implementationPlan.createdAt",
-            )
         plan_targets_base = implementation_plan["plannedBranch"] == base_branch
         plan_authored_by_runner = implementation_plan["author"] == current_user
         if not plan_targets_base and project_status != planning_status:
@@ -363,9 +625,32 @@ def analyze_ticket(
             and plan_authored_by_runner
         )
         plan_is_current_in_planning = (
-            plan_updated_at >= planning_transition["createdAt"]
+            plan_published_at >= planning_transition["createdAt"]
             and plan_is_usable
         )
+        foreign_plan_authors = sorted(
+            {
+                plan["author"]
+                for plan in implementation_plans
+                if plan["author"] != current_user
+            },
+        )
+        if foreign_plan_authors and plan_authored_by_runner:
+            exclusions.append(
+                "implementation plan history authors "
+                f"{foreign_plan_authors} do not match current user {current_user!r}",
+            )
+
+    replan_request = (
+        parse_replan_request(ticket.get("replanRequest"), number)
+        if ticket.get("replanRequest") is not None
+        else None
+    )
+    backlog_transition = (
+        parse_transition(ticket.get("backlogTransition"), "backlogTransition", number)
+        if ticket.get("backlogTransition") is not None
+        else None
+    )
 
     valid_ready_handoff = False
     ready_transition = (
@@ -382,21 +667,80 @@ def analyze_ticket(
         and not ready_transition["wasAutomated"]
         and ready_transition["actor"] == current_user
     )
-    ready_follows_plan = (
-        ready_transition is not None
-        and plan_updated_at is not None
-        and ready_transition["createdAt"] >= plan_updated_at
+    prior_plan = implementation_plan
+    if replan_request is not None:
+        prior_plan = next(
+            (
+                plan for plan in implementation_plans
+                if (
+                    plan["permalink"]
+                    == replan_request["previousPlanPermalink"]
+                    and plan["digest"] == replan_request["previousPlanDigest"]
+                )
+            ),
+            None,
+        )
+    prior_plan_published_at = (
+        timestamp(
+            prior_plan.get("publishedAt"),
+            "implementationPlan.publishedAt",
+            number,
+        )
+        if prior_plan is not None
+        else None
+    )
+    prior_plan_is_usable = (
+        prior_plan is not None
+        and prior_plan["plannedBranch"] == base_branch
+        and prior_plan["author"] == current_user
     )
     valid_prior_ready_handoff = (
         ready_has_runner_provenance
-        and ready_follows_plan
-        and plan_is_usable
+        and ready_transition is not None
+        and prior_plan_published_at is not None
+        and ready_transition["createdAt"] >= prior_plan_published_at
+        and prior_plan_is_usable
         and ready_transition["createdAt"] < planning_transition["createdAt"]
+    )
+    valid_autonomous_replan_report = (
+        replan_request is not None
+        and prior_plan is not None
+        and replan_request["author"] == current_user
+        and replan_request["disposition"] == "autonomous-replan"
+        and ready_transition is not None
+        and replan_request["createdAt"] >= ready_transition["createdAt"]
+        and replan_request["createdAt"] <= planning_transition["createdAt"]
+    )
+    own_pull_requests = [
+        pull_request for pull_request in pull_requests
+        if pull_request["author"] == current_user
+    ]
+    own_closing_pull_requests = [
+        pull_request for pull_request in own_pull_requests
+        if pull_request["closesIssue"]
+    ]
+    retained_pr_matches_report = (
+        replan_request is not None
+        and (
+            (
+                replan_request["pullRequestUrl"] is None
+                and not own_closing_pull_requests
+            )
+            or (
+                len(own_closing_pull_requests) == 1
+                and replan_request["pullRequestUrl"]
+                == own_closing_pull_requests[0]["url"]
+                and replan_request["implementationHeadSha"]
+                == own_closing_pull_requests[0]["headSha"]
+            )
+        )
     )
     planning_is_runner_requeue = (
         project_status == planning_status
         and planning_actor_is_runner
         and valid_prior_ready_handoff
+        and valid_autonomous_replan_report
+        and retained_pr_matches_report
     )
     planning_is_human_authority = (
         planning_actor_is_approver
@@ -417,12 +761,38 @@ def analyze_ticket(
         and not planning_is_runner_requeue
         and not planning_is_human_authority
     ):
-        exclusions.append(
-            "runner Planning requeue lacks a verified prior Ready handoff",
-        )
-    if planning_is_runner_requeue:
-        plan_is_current_in_planning = False
-
+        if not valid_prior_ready_handoff:
+            exclusions.append(
+                "runner Planning requeue lacks a verified prior Ready handoff",
+            )
+        elif not valid_autonomous_replan_report:
+            exclusions.append(
+                "runner Planning requeue lacks a verified replan report",
+            )
+        elif not retained_pr_matches_report:
+            exclusions.append(
+                "runner Planning requeue lacks verified retained PR evidence",
+            )
+    if (
+        planning_is_runner_requeue
+        and plan_is_current_in_planning
+        and implementation_plan is not None
+        and prior_plan is not None
+    ):
+        replan_revisions = [
+            plan for plan in implementation_plans
+            if plan["revision"] > prior_plan["revision"]
+        ]
+        if (
+            not replan_revisions
+            or any(
+                plan["replanRequest"] != replan_request["permalink"]
+                for plan in replan_revisions
+            )
+        ):
+            exclusions.append(
+                "active plan revision does not link the verified replan report",
+            )
     if project_status != planning_status and ready_transition is not None:
         if ready_transition["status"] != ready_status:
             errors.append(
@@ -450,45 +820,82 @@ def analyze_ticket(
             else:
                 valid_ready_handoff = ready_has_runner_provenance
 
-    if str(ticket["state"]).upper() != "OPEN":
+    if (
+        str(ticket["state"]).upper() != "OPEN"
+        and not recovering_backlog_cleanup
+    ):
         exclusions.append("not open")
 
-    if project_status not in (planning_status, ready_status, in_progress_status):
+    if project_status not in (
+        backlog_status,
+        planning_status,
+        ready_status,
+        in_progress_status,
+    ):
         errors.append(
             "expected project status "
-            f"{planning_status!r}, {ready_status!r}, or {in_progress_status!r}, "
+            f"{backlog_status!r}, {planning_status!r}, {ready_status!r}, "
+            f"or {in_progress_status!r}, "
             f"found {project_status!r}",
         )
 
-    project_priority = ticket["projectPriority"]
-    if project_priority is not None and project_priority not in priorities:
-        errors.append(f"unknown project priority {project_priority!r}")
-    priority_rank = (
-        priorities.index(project_priority)
-        if project_priority is not None and project_priority in priorities
-        else len(priorities)
-    )
-
-    if blockers:
+    if blockers and not recovering_backlog_cleanup:
         exclusions.append(f"blocked by {blockers}")
-    if open_descendants:
+    if open_descendants and not recovering_backlog_cleanup:
         exclusions.append(f"open descendants {open_descendants}")
 
-    assigned_to_current_user = current_user in assignees
     other_assignees = [assignee for assignee in assignees if assignee != current_user]
     if other_assignees:
         exclusions.append(f"assigned to {other_assignees}")
     if project_status == in_progress_status and not assignees:
         exclusions.append("in progress without an assignee")
+    if project_status == backlog_status:
+        if backlog_transition is None:
+            exclusions.append("missing verified Backlog transition")
+        elif backlog_transition["status"] != backlog_status:
+            errors.append(
+                f"latest backlog transition status {backlog_transition['status']!r} "
+                f"does not match {backlog_status!r}",
+            )
+        elif (
+            backlog_transition["wasAutomated"]
+            or backlog_transition["actor"] != current_user
+        ):
+            exclusions.append(
+                "Backlog transition lacks current-runner provenance",
+            )
+        if replan_request is None:
+            exclusions.append("missing verified human-work report")
+        else:
+            if replan_request["author"] != current_user:
+                exclusions.append(
+                    "human-work report author "
+                    f"{replan_request['author']!r} does not match "
+                    f"current user {current_user!r}",
+                )
+            if replan_request["disposition"] != "human-required":
+                exclusions.append(
+                    "Backlog replan report is not marked human-required",
+                )
+            if implementation_plan is not None and (
+                replan_request["previousPlanPermalink"]
+                != implementation_plan["permalink"]
+                or replan_request["previousPlanDigest"]
+                != implementation_plan["digest"]
+            ):
+                exclusions.append(
+                    "human-work report does not identify the current plan",
+                )
+            if (
+                backlog_transition is not None
+                and backlog_transition["createdAt"] < replan_request["createdAt"]
+            ):
+                exclusions.append(
+                    "Backlog transition predates the human-work report",
+                )
+        if not assigned_to_current_user:
+            exclusions.append("human work required in Backlog")
 
-    own_pull_requests = [
-        pull_request for pull_request in pull_requests
-        if pull_request["author"] == current_user
-    ]
-    own_closing_pull_requests = [
-        pull_request for pull_request in own_pull_requests
-        if pull_request["closesIssue"]
-    ]
     wrong_target_pull_requests = [
         pull_request for pull_request in own_closing_pull_requests
         if (
@@ -541,7 +948,9 @@ def analyze_ticket(
             f"{[pull_request['url'] for pull_request in pull_requests]}",
         )
 
-    if project_status == planning_status:
+    if project_status == backlog_status and assigned_to_current_user:
+        action = "resume-backlog-cleanup"
+    elif project_status == planning_status:
         action = (
             "resume-planning-handoff"
             if assigned_to_current_user and plan_is_current_in_planning
@@ -561,6 +970,84 @@ def analyze_ticket(
         "projectPosition": project_position,
         "assignedToCurrentUser": assigned_to_current_user,
         "resumeAction": action,
+        "errors": errors,
+        "exclusions": exclusions,
+    }
+
+
+def analyze_backlog_ticket(
+    ticket: dict[str, Any],
+    *,
+    needs_triage_label: str,
+    epic_label: str,
+    human_work_label: str,
+    priorities: tuple[str, ...],
+) -> dict[str, Any]:
+    common = analyze_common_ticket(
+        ticket,
+        priorities,
+        require_execution_pr_fields=False,
+    )
+    assignees = common["assignees"]
+    labels = common["labels"]
+    blockers = common["blockers"]
+    open_descendants = common["openDescendants"]
+    pull_requests = common["pullRequests"]
+    project_position = common["projectPosition"]
+    priority_rank = common["priorityRank"]
+
+    errors = common["errors"]
+    exclusions = common["exclusions"]
+    blocker_reasons: list[str] = []
+    if str(ticket["state"]).upper() != "OPEN":
+        exclusions.append("not open")
+    is_epic = epic_label in labels
+    is_agent_work = AGENT_WORK_LABEL in labels
+    is_human_work = human_work_label in labels
+    needs_triage = needs_triage_label in labels
+    action_roles = [is_agent_work, is_human_work, needs_triage]
+    if sum(action_roles) > 1:
+        exclusions.append("conflicting Backlog action labels")
+    if is_epic and is_agent_work:
+        exclusions.append("epic cannot be ready for agent implementation")
+
+    role: str | None = None
+    action: str | None = None
+    if not exclusions:
+        if is_human_work:
+            role = "human-epic" if is_epic else "human"
+            action = "perform-human-work"
+        elif needs_triage:
+            role = "triage"
+            action = "triage"
+        elif is_agent_work:
+            role = "agent"
+            action = "move-to-planning"
+        elif is_epic:
+            role = "epic"
+            action = "close-epic"
+        else:
+            exclusions.append("unclassified Backlog work")
+
+    if assignees and role not in ("human", "human-epic"):
+        exclusions.append(f"assigned to {assignees}")
+    if pull_requests and role not in ("human", "human-epic"):
+        exclusions.append(
+            "has open implementation PRs "
+            f"{[pull_request['url'] for pull_request in pull_requests]}",
+        )
+    if blockers:
+        blocker_reasons.append(f"blocked by {blockers}")
+    if open_descendants:
+        blocker_reasons.append(f"open descendants {open_descendants}")
+
+    return {
+        "ticket": ticket,
+        "priorityRank": priority_rank,
+        "projectPosition": project_position,
+        "role": role,
+        "action": action,
+        "blockerReasons": blocker_reasons,
         "errors": errors,
         "exclusions": exclusions,
     }
@@ -587,11 +1074,30 @@ def main() -> int:
         execution_approvers = tuple(args.execution_approvers)
         if len(set(execution_approvers)) != len(execution_approvers):
             raise InputError("execution approvers must be unique")
+        statuses = (
+            args.backlog_status,
+            args.planning_status,
+            args.ready_status,
+            args.in_progress_status,
+        )
+        if len(set(statuses)) != len(statuses):
+            raise InputError("project statuses must be unique")
+        role_labels = (
+            args.needs_triage_label,
+            args.epic_label,
+            args.human_work_label,
+            AGENT_WORK_LABEL,
+        )
+        if any(not label for label in role_labels):
+            raise InputError("role labels must be non-empty")
+        if len(set(role_labels)) != len(role_labels):
+            raise InputError("role labels must be unique")
         if not 1 <= args.max_claims <= 3:
             raise InputError("max claims must be between 1 and 3")
 
         seen_numbers: set[int] = set()
-        analyses: list[dict[str, Any]] = []
+        execution_analyses: list[dict[str, Any]] = []
+        backlog_analyses: list[dict[str, Any]] = []
         invalid_unclaimed: list[dict[str, Any]] = []
         invalid_claimed: list[dict[str, Any]] = []
         invalid_planning_claimed: list[dict[str, Any]] = []
@@ -601,34 +1107,75 @@ def main() -> int:
                 if ticket["number"] in seen_numbers:
                     raise InputError(f"duplicate ticket number {ticket['number']}")
                 seen_numbers.add(ticket["number"])
-                analyses.append(
-                    analyze_ticket(
-                        ticket,
-                        current_user=args.current_user,
-                        planning_status=args.planning_status,
-                        ready_status=args.ready_status,
-                        in_progress_status=args.in_progress_status,
-                        priorities=priorities,
-                        repository=args.repository,
-                        base_branch=args.base_branch,
-                        execution_approvers=execution_approvers,
-                    ),
-                )
+                if (
+                    ticket["projectStatus"] == args.backlog_status
+                    and (
+                        not has_current_user_assignment(
+                            ticket,
+                            args.current_user,
+                        )
+                        or (
+                            isinstance(ticket["labels"], list)
+                            and args.human_work_label in ticket["labels"]
+                        )
+                    )
+                ):
+                    backlog_analyses.append(
+                        analyze_backlog_ticket(
+                            ticket,
+                            needs_triage_label=args.needs_triage_label,
+                            epic_label=args.epic_label,
+                            human_work_label=args.human_work_label,
+                            priorities=priorities,
+                        ),
+                    )
+                else:
+                    execution_analyses.append(
+                        analyze_ticket(
+                            ticket,
+                            current_user=args.current_user,
+                            backlog_status=args.backlog_status,
+                            planning_status=args.planning_status,
+                            ready_status=args.ready_status,
+                            in_progress_status=args.in_progress_status,
+                            priorities=priorities,
+                            repository=args.repository,
+                            base_branch=args.base_branch,
+                            execution_approvers=execution_approvers,
+                        ),
+                    )
             except InputError as error:
                 number = raw_ticket.get("number", "?") if isinstance(raw_ticket, dict) else "?"
                 invalid = {
                     "number": number,
                     "reasons": [str(error)],
                 }
-                if has_current_user_assignment(raw_ticket, args.current_user):
+                is_human_frontier_item = (
+                    isinstance(raw_ticket, dict)
+                    and raw_ticket.get("projectStatus") == args.backlog_status
+                    and isinstance(raw_ticket.get("labels"), list)
+                    and args.human_work_label in raw_ticket["labels"]
+                )
+                if is_human_frontier_item:
+                    invalid_unclaimed.append(invalid)
+                elif has_current_user_assignment(raw_ticket, args.current_user):
                     if (
                         isinstance(raw_ticket, dict)
                         and raw_ticket.get("projectStatus")
-                        in (args.planning_status, args.ready_status)
+                        in (
+                            args.backlog_status,
+                            args.planning_status,
+                            args.ready_status,
+                        )
                     ):
                         invalid_planning_claimed.append(invalid)
                     else:
                         invalid_claimed.append(invalid)
+                elif (
+                    isinstance(raw_ticket, dict)
+                    and raw_ticket.get("projectStatus") == args.backlog_status
+                ):
+                    invalid_unclaimed.append(invalid)
                 else:
                     invalid_unclaimed.append(invalid)
 
@@ -637,7 +1184,7 @@ def main() -> int:
                 "number": item["ticket"]["number"],
                 "reasons": item["errors"] + item["exclusions"],
             }
-            for item in analyses
+            for item in execution_analyses
             if (
                 item["assignedToCurrentUser"]
                 and item["ticket"]["projectStatus"] == args.in_progress_status
@@ -649,22 +1196,28 @@ def main() -> int:
                 "number": item["ticket"]["number"],
                 "reasons": item["errors"] + item["exclusions"],
             }
-            for item in analyses
+            for item in execution_analyses
             if (
                 item["assignedToCurrentUser"]
                 and item["ticket"]["projectStatus"]
-                in (args.planning_status, args.ready_status)
+                in (
+                    args.backlog_status,
+                    args.planning_status,
+                    args.ready_status,
+                )
                 and (item["errors"] or item["exclusions"])
             )
         ]
 
         eligible = [
-            item for item in analyses if not item["errors"] and not item["exclusions"]
+            item
+            for item in execution_analyses
+            if not item["errors"] and not item["exclusions"]
         ]
         claimed = [item for item in eligible if item["assignedToCurrentUser"]]
         claimed.sort(
             key=lambda item: (
-                item["resumeAction"] not in IMPLEMENTATION_ACTIONS,
+                CLAIM_ACTION_RANK.get(item["resumeAction"], 2),
                 *ticket_rank(item),
             ),
         )
@@ -709,12 +1262,50 @@ def main() -> int:
                 "number": item["ticket"]["number"],
                 "reasons": item["errors"] + item["exclusions"],
             }
-            for item in analyses
+            for item in execution_analyses
             if (
                 not item["assignedToCurrentUser"]
                 and (item["errors"] or item["exclusions"])
             )
+        ] + [
+            {
+                "number": item["ticket"]["number"],
+                "reasons": item["errors"] + item["exclusions"],
+            }
+            for item in backlog_analyses
+            if item["errors"] or item["exclusions"]
         ]
+        eligible_backlog = [
+            item
+            for item in backlog_analyses
+            if not item["errors"] and not item["exclusions"]
+        ]
+        triage_candidates = sorted(
+            (
+                item for item in eligible_backlog
+                if item["action"] == "triage" and not item["blockerReasons"]
+            ),
+            key=ticket_rank,
+        )
+        ready_epics = sorted(
+            (
+                item for item in eligible_backlog
+                if item["action"] == "close-epic" and not item["blockerReasons"]
+            ),
+            key=ticket_rank,
+        )
+        human_actions = sorted(
+            (
+                item for item in eligible_backlog
+                if item["action"] in ("move-to-planning", "perform-human-work")
+                and not item["blockerReasons"]
+            ),
+            key=ticket_rank,
+        )
+        parked_blocked = sorted(
+            (item for item in eligible_backlog if item["blockerReasons"]),
+            key=ticket_rank,
+        )
         output = {
             "claimLimit": args.max_claims,
             "blockedClaims": blocked_claims,
@@ -735,6 +1326,35 @@ def main() -> int:
                     ),
                 }
                 for item in candidates
+            ],
+            "triageCandidates": [
+                {
+                    "ticket": item["ticket"],
+                    "action": item["action"],
+                }
+                for item in triage_candidates
+            ],
+            "readyEpics": [
+                {
+                    "ticket": item["ticket"],
+                    "action": item["action"],
+                }
+                for item in ready_epics
+            ],
+            "humanActions": [
+                {
+                    "ticket": item["ticket"],
+                    "action": item["action"],
+                }
+                for item in human_actions
+            ],
+            "parkedBlocked": [
+                {
+                    "ticket": item["ticket"],
+                    "role": item["role"],
+                    "reasons": item["blockerReasons"],
+                }
+                for item in parked_blocked
             ],
             "excluded": excluded,
         }

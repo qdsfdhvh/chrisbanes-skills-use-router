@@ -4,10 +4,10 @@ Use this scheduler only for `drain`. Keep `next` single-ticket.
 
 ## Slot Model
 
-1. Default to three slots. Accept a user-specified limit of one or two; never
-   exceed three. Treat the limit as both the maximum number of claimed,
-   in-flight tickets and the maximum number of concurrently active ticket
-   agents.
+1. Default to two slots. Accept any positive user-specified limit and impose no
+   skill-defined maximum. Treat the limit as both the maximum number of
+   claimed, in-flight tickets and the maximum number of concurrently active
+   ticket agents.
    Define active-agent capacity as the environment-reported number of
    non-controller agents that can run simultaneously. Running ticket agents,
    the planner, and descendants consume it; idle persistent contexts do not.
@@ -24,10 +24,23 @@ Use this scheduler only for `drain`. Keep `next` single-ticket.
    claim, then fill free slots. Stop for reconciliation when all claims
    together exceed the invocation's slot limit.
 6. Keep one separate planning lane. It preserves assignment and planning
-   handoff claims but never consumes one of the three implementation slots.
+   handoff claims but never consumes one of the configured implementation slots.
    Follow [Planning Lane](planning-lane.md) for its worktree, agent, authority,
    handoff, and blocker rules. Do not reserve agent capacity for Planning;
    start it only from currently spare capacity, then never preempt it.
+7. When an implementation slot requeues for contract-preserving planning,
+   release the slot but park its assignment, branch, worktree, PR, dirty work
+   and idle ticket context on the planning claim. Restore that same ownership
+   when the handoff reacquires a slot. A Backlog handoff instead removes all
+   skill-owned artifacts and retains no claim.
+8. Keep Backlog triage as a tail lane. Follow
+   the authoritative execution-clear predicate in
+   [Backlog Triage Lane](triage-lane.md#dispatch). It consumes no implementation
+   slot and processes one issue at a time.
+9. Keep ready epics and human actions in the separate
+   [Epics And Human Frontier](human-frontier.md). They consume neither a slot
+   nor agent capacity. Serialize epic closure in the controller lane, surface
+   changed human actions immediately, and continue independent work.
 
 ## Parallel Workers And Controller Lane
 
@@ -47,6 +60,9 @@ For each ticket pass, continue through implementation, verification, all review
 contracts, a focused commit, and a reconciled push plus PR creation or update.
 Then yield durable evidence to the controller and idle that persistent context.
 Resume the same agent for actionable feedback or base repair.
+
+Apply [Route Agents By Task](../DOC.md#route-agents-by-task) when selecting
+each persistent ticket agent and its helpers.
 
 ### Conflict Admission Gate
 
@@ -131,19 +147,31 @@ At every controller event or worker yield, perform all independent runnable
 actions that fit the slot and active-agent limits. Exhaust each class before
 dispatching the next:
 
-1. Merge the oldest merge-ready slot, unless an explicit dependency requires a
+1. Finish any interrupted assigned-Backlog cleanup before new claims.
+2. Merge the oldest merge-ready slot, unless an explicit dependency requires a
    different order. Admit or merge only one at a time.
-2. Resume owning ticket agents for actionable review, CI, or base-repair events
+3. Reconcile the highest-ranked ready epic with issue-close authority, then
+   refresh the complete Project graph before taking another action.
+4. Resume owning ticket agents for actionable review, CI, or base-repair events
    in oldest-event order.
-3. Resume paused local implementation slots in claim order.
-4. Finish a current plan or verified planning handoff without preemption.
-5. Apply the [Conflict Admission Gate](#conflict-admission-gate), claim ranked
+5. Resume paused local implementation slots in claim order.
+6. Finish a current contract-preserving replan, other plan, or verified
+   planning handoff without preemption. Choose preserved replan claims before
+   other Planning claims.
+7. Apply the [Conflict Admission Gate](#conflict-admission-gate), claim ranked
    `Ready to implement` tickets one at a time, and launch unrelated slot agents
    until the in-flight or active-agent limit is reached.
-6. Start the next ranked `Planning` item only when the planning lane and active
+8. Start the next ranked `Planning` item only when the planning lane and active
    agent capacity are free after maximizing runnable implementation.
-7. Monitor all remote slots together only when no local or controller action
+9. Monitor all remote slots together only when no local or controller action
    remains.
+10. After the authoritative execution-clear predicate in
+   [Backlog Triage Lane](triage-lane.md#dispatch) is satisfied, process the next
+   unblocked Backlog `needs-triage` item through the triage tail lane.
+
+At startup and after every refreshed query, present the changed human frontier
+packet from [Epics And Human Frontier](human-frontier.md). Never wait for its
+actions while any step above remains runnable.
 
 Never preempt a valid occupied slot for newly higher-priority work. Requery and
 rank live data before every just-in-time claim.
@@ -154,6 +182,11 @@ completion without preemption. Once handed off, the same assigned issue enters
 the next available implementation slot. Apply the planning lane's reconciled
 three-attempt recovery to planner loss, crash, or timeout; do not classify
 those execution failures as semantic blockers.
+
+Contract-preserving replan claims outrank all new Ready and Planning work but
+never preempt an active agent. They retain their original claim order when
+several slots requeue. Backlog items are never queue candidates; only an
+interrupted current-runner cleanup is recoverable.
 
 ## Remote Waiting
 
@@ -201,8 +234,22 @@ occurrence. Discover and add the narrow named lock before retrying. Pause new
 claims when the same collision or infrastructure failure affects two slots or
 the verified base.
 
-Finish successfully only when a complete live query is empty and every slot is
-free after merge reconciliation. If no runnable work remains but a slot is
-blocked or timed out, stop with a partial-drain report, preserve every affected
-worktree, branch, PR, assignment, and `In progress` Status, and never report
-success.
+After a verified Backlog handoff, cleanup failure is ticket-local. Release
+scheduler capacity, report the exact unreconciled artifact, and never delete it
+by guess. Keep the runner assigned as the durable cleanup lease until the
+idempotent finish state proves that its PR, processes, resource grants,
+worktree, and branches are gone; unassign last. A later run may finish only an
+assigned Backlog cleanup with verified runner provenance. An unassigned Backlog
+item without the configured `needs-triage` label remains human-owned; an
+eligible labeled item belongs only to the triage tail lane.
+
+Finish successfully only when the authoritative execution-clear predicate in
+[Backlog Triage Lane](triage-lane.md#dispatch) is satisfied, a complete live
+query has no non-deferred triage candidate after merge reconciliation, and no
+human action remains. Dependency-parked Backlog items do not prevent success;
+report their live blockers. If only human actions remain, return
+`waiting-for-human` through [Epics And Human Frontier](human-frontier.md). If no
+runnable work remains but a claim or slot is blocked or timed out, or the
+triage provider cannot complete an eligible item, stop with a partial-drain
+report, preserve every affected worktree, branch, PR, assignment, and
+`In progress` Status, and never report success.
