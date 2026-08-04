@@ -135,5 +135,10 @@ the submodule pointer when intentionally updating upstream.
 - The generated `SKILL.md` routes all tasks to
   `references/using-chrisbanes-skills/DOC.md`; it does not duplicate the skill
   index table that already lives in that guide.
+- Exclude upstream GitHub Project workflow skills (`run-github-project`,
+  `to-plan`) from `references/` — they are irrelevant to Kotlin, Android, and
+  Compose development and dominate the generated size. The generator strips
+  their routing-table rows from `using-chrisbanes-skills/DOC.md`, and
+  validation fails on any dead link back to them.
 - The generated skill lives in `skills/chrisbanes-skills-use/` and is committed.
   Treat it as versioned output; regenerate rather than edit by hand.

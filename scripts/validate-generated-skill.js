@@ -98,6 +98,19 @@ function validate(skillDir) {
     }
   }
 
+  // Every ../<skill>/DOC.md link in the primary route guide must point at a
+  // reference doc that was actually generated (catches dead links when skills
+  // are excluded or upstream renames a skill).
+  const usingGuide = readText(usingGuidePath);
+  const linkPattern = /\(\.\.\/([A-Za-z0-9._-]+)\/DOC\.md\)/g;
+  let linkMatch;
+  while ((linkMatch = linkPattern.exec(usingGuide)) !== null) {
+    const linkedSkill = linkMatch[1];
+    if (!fs.existsSync(path.join(refsDir, linkedSkill, "DOC.md"))) {
+      fail(`Dead link in using-chrisbanes-skills/DOC.md: ../${linkedSkill}/DOC.md does not exist`);
+    }
+  }
+
   for (const filePath of listMarkdownFiles(skillDir)) {
     const content = readText(filePath);
     if (content.includes("SKILL.md")) {

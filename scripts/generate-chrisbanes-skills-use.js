@@ -7,6 +7,14 @@ const { execSync } = require("child_process");
 const repoRoot = path.resolve(__dirname, "..");
 const skillName = "chrisbanes-skills-use";
 
+// Upstream skills excluded from the generated router. These are GitHub Project
+// workflow skills (autonomous backlog draining / planning) that are irrelevant
+// to regular Kotlin, Android, and Jetpack Compose development and account for
+// most of the generated size. Excluded skills are not copied into references/,
+// and any routing-table rows in using-chrisbanes-skills that link to them are
+// stripped to avoid dead links.
+const EXCLUDED_SKILLS = ["run-github-project", "to-plan"];
+
 const defaults = {
   source: "upstream/chrisbanes-skills/skills",
   output: "skills/chrisbanes-skills-use",
@@ -62,6 +70,19 @@ function parseArgs(argv) {
 
 function resolveFromRoot(p) {
   return path.isAbsolute(p) ? p : path.join(repoRoot, p);
+}
+
+function stripExcludedSkillLinks(guidePath) {
+  if (!fs.existsSync(guidePath) || EXCLUDED_SKILLS.length === 0) {
+    return;
+  }
+  const patterns = EXCLUDED_SKILLS.map((name) => `../${name}/DOC.md`);
+  const lines = fs.readFileSync(guidePath, "utf8").split(/\r?\n/);
+  const kept = lines.filter((line) => !patterns.some((pattern) => line.includes(pattern)));
+  if (kept.length !== lines.length) {
+    fs.writeFileSync(guidePath, kept.join("\n"));
+    console.log(`Stripped ${lines.length - kept.length} link(s) to excluded skills from ${path.relative(repoRoot, guidePath)}`);
+  }
 }
 
 function listSkillDirs(sourceDir) {
@@ -148,14 +169,20 @@ function main() {
   }
 
   const skillDirs = listSkillDirs(sourceDir);
+  const includedDirs = skillDirs.filter((dir) => !EXCLUDED_SKILLS.includes(path.basename(dir)));
+  const excluded = skillDirs.filter((dir) => EXCLUDED_SKILLS.includes(path.basename(dir)));
 
   fs.rmSync(outputDir, { recursive: true, force: true });
   fs.mkdirSync(outputDir, { recursive: true });
 
   const referencesDir = path.join(outputDir, "references");
-  for (const dir of skillDirs) {
+  for (const dir of includedDirs) {
     copyDir(dir, path.join(referencesDir, path.basename(dir)));
   }
+
+  // Remove routing-table rows in the primary guide that link to excluded
+  // skills, so the router never points at a missing reference doc.
+  stripExcludedSkillLinks(path.join(referencesDir, "using-chrisbanes-skills", "DOC.md"));
 
   const upstreamVersion = readUpstreamVersion(sourceDir);
   const template = fs.readFileSync(templatePath, "utf8");
@@ -165,7 +192,10 @@ function main() {
   writeOpenAiYaml(outputDir);
   copyUpstreamLicense(sourceDir, outputDir);
 
-  console.log(`Generated ${skillDirs.length} skills (upstream ${upstreamVersion}) into ${path.relative(repoRoot, outputDir)}`);
+  console.log(`Generated ${includedDirs.length} skills (upstream ${upstreamVersion}) into ${path.relative(repoRoot, outputDir)}`);
+  if (excluded.length > 0) {
+    console.log(`Excluded ${excluded.map((dir) => path.basename(dir)).join(", ")} (not copied to references/)`);
+  }
   console.log(`Router skill: ${path.relative(repoRoot, path.join(outputDir, "SKILL.md"))}`);
   console.log(`Reference docs: ${path.relative(repoRoot, referencesDir)}`);
 }
