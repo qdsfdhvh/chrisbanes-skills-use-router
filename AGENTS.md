@@ -132,10 +132,8 @@ the submodule pointer when intentionally updating upstream.
 - Rewrite copied markdown links from `SKILL.md` to `DOC.md`.
 - Keep `using-chrisbanes-skills` as the primary copied route guide at
   `references/using-chrisbanes-skills/DOC.md`, not as a second installed skill.
-- Make the generated `SKILL.md` guide broad or unclear tasks to
-  `references/using-chrisbanes-skills/DOC.md` before focused docs.
-- Copy the upstream license into generated output as `UPSTREAM-LICENSE`.
-- Do not duplicate every upstream frontmatter block in the router `SKILL.md`;
-  keep only the compact generated index.
+- The generated `SKILL.md` routes all tasks to
+  `references/using-chrisbanes-skills/DOC.md`; it does not duplicate the skill
+  index table that already lives in that guide.
 - The generated skill lives in `skills/chrisbanes-skills-use/` and is committed.
   Treat it as versioned output; regenerate rather than edit by hand.

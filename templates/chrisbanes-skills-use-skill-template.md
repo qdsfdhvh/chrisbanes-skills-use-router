@@ -8,29 +8,11 @@ description: "Use this skill when a Kotlin, Android, Jetpack Compose, Compose Mu
 
 This skill is a lightweight router for the `chrisbanes/skills` skill set.
 
-Use `references/using-chrisbanes-skills/DOC.md` as the canonical upstream guide
-for choosing focused skills. Read that guide before detailed advice, review
-findings, or code edits unless the user names a narrow concern that clearly
-matches one focused skill.
+**Always start by reading `references/using-chrisbanes-skills/DOC.md`.** It contains
+the canonical routing table that maps task signals to focused skill docs. Match the
+user's task against that table, then read only the selected
+`references/<skill-name>/DOC.md` files before giving detailed advice or editing code.
 
-Do not assume the router body is enough for execution details. The copied docs
-contain the actual guidance, examples, and cross-skill routing. After
-`using-chrisbanes-skills` selects focused skills, read only those
-`references/<skill-name>/DOC.md` files.
-
-## Routing Rules
-
-- Read `references/using-chrisbanes-skills/DOC.md` first for broad or unclear
-  Kotlin, Android, and Jetpack Compose work.
-- Match narrow requests against the original skill descriptions below only when
-  one focused skill clearly applies.
-- Read the selected focused `DOC.md` files before applying guidance in those
-  areas.
-- Read additional copied files under the selected skill only when that skill
-  tells you to or when that specific resource is needed.
-- If the original focused skills are already installed and one clearly matches,
-  use it directly instead of this router.
-
-## Original Skill Index
-
-{{SKILL_INDEX}}
+If a narrow request already clearly matches one focused skill, you may skip the
+router doc and read that skill's `DOC.md` directly. If the original focused skills
+are already installed, use them directly instead of this router.
