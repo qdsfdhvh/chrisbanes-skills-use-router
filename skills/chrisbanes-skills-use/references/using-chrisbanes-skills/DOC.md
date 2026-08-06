@@ -1,18 +1,24 @@
 
 # Using chrisbanes skills
 
-Router only. Use this skill to choose the focused skill or skills for the task, then load those focused skills before giving detailed advice or editing code.
+Router only. Inspect the Kotlin code and task, choose the smallest relevant focused skill set, then load those skills before giving detailed advice or editing code.
 
-If a request already clearly matches a focused skill, use that skill directly. If several areas affect the work, load each relevant focused skill before acting on that area.
+## Routing procedure
+
+1. Read the task and the Kotlin source that makes the code-design concern concrete.
+2. If one focused skill clearly matches, load it directly and stop routing.
+3. Otherwise, match each observed code signal to the table below and load the smallest skill set that covers the work.
+4. Combine skills only when separate concerns affect the same change; do not load adjacent skills speculatively.
+5. Finish routing when every material concern has one focused owner and those skills are loaded before advice or edits.
 
 ## Common routes
 
 | Task signal | Start with |
 |---|---|
-| Broad Compose screen review or refactor | [`compose-state-holder-ui-split`](../compose-state-holder-ui-split/DOC.md), then add state, effects, layout, testing, or performance skills as needed |
+| Broad Compose screen review or refactor | [`compose-state-hoisting`](../compose-state-hoisting/DOC.md), then add effects, layout, testing, or performance skills as needed |
 | Local Compose state, bare local `var`, `remember { mutableStateOf(...) }`, `mutableStateListOf`, or `@ReadOnlyComposable` | [`compose-state-authoring`](../compose-state-authoring/DOC.md) |
 | Deciding whether state belongs locally, hoisted, in a plain state holder, or in a screen state holder | [`compose-state-hoisting`](../compose-state-hoisting/DOC.md) |
-| ViewModel, component, controller, navigation, Flow collection, or dependency wiring mixed with UI layout | [`compose-state-holder-ui-split`](../compose-state-holder-ui-split/DOC.md) |
+| ViewModel, component, controller, navigation, Flow collection, or dependency wiring mixed with UI layout | [`compose-state-hoisting`](../compose-state-hoisting/DOC.md) |
 | `LaunchedEffect`, `DisposableEffect`, `SideEffect`, `rememberCoroutineScope`, `rememberUpdatedState`, navigation, snackbar, analytics, focus requests, or event Flow collection | [`compose-side-effects`](../compose-side-effects/DOC.md) |
 | Recomposition, jank, compiler reports, Layout Inspector counts, unstable params, scroll reads, animation reads, or back-writing state across phases | [`compose-recomposition-performance`](../compose-recomposition-performance/DOC.md) |
 | Known Compose stability or skippability question, compiler `classes.txt` / `composables.txt`, collection parameters, or strong skipping | [`compose-stability-diagnostics`](../compose-stability-diagnostics/DOC.md) |
@@ -31,9 +37,9 @@ If a request already clearly matches a focused skill, use that skill directly. I
 
 ## Combining skills
 
-- For Compose event handling from a ViewModel or component, use [`compose-state-holder-ui-split`](../compose-state-holder-ui-split/DOC.md), [`compose-side-effects`](../compose-side-effects/DOC.md), and, if the event primitive matters, [`kotlin-flow-state-event-modeling`](../kotlin-flow-state-event-modeling/DOC.md).
+- For Compose event handling from a ViewModel or component, use [`compose-state-hoisting`](../compose-state-hoisting/DOC.md), [`compose-side-effects`](../compose-side-effects/DOC.md), and, if the event primitive matters, [`kotlin-flow-state-event-modeling`](../kotlin-flow-state-event-modeling/DOC.md).
 - For performance work, start with [`compose-recomposition-performance`](../compose-recomposition-performance/DOC.md). It routes deeper to stability or deferred-read fixes.
-- For animations triggered by state, use [`compose-animations`](../compose-animations/DOC.md) together with [`compose-state-holder-ui-split`](../compose-state-holder-ui-split/DOC.md); for frame-rate-driven animation values, also load [`compose-state-deferred-reads`](../compose-state-deferred-reads/DOC.md).
+- For animations triggered by state, use [`compose-animations`](../compose-animations/DOC.md); add [`compose-state-hoisting`](../compose-state-hoisting/DOC.md) when state ownership changes, and [`compose-state-deferred-reads`](../compose-state-deferred-reads/DOC.md) for frame-rate-driven values.
 - For reusable UI components, pair [`compose-modifier-and-layout-style`](../compose-modifier-and-layout-style/DOC.md) with [`compose-slot-api-pattern`](../compose-slot-api-pattern/DOC.md) when both placement and content flexibility are in play.
 - For tests around focus behavior, use [`compose-focus-navigation`](../compose-focus-navigation/DOC.md) first, then [`compose-ui-testing-patterns`](../compose-ui-testing-patterns/DOC.md) for test shape.
 - For Kotlin state or platform-boundary work that also changes branching shape, combine the domain skill with [`kotlin-control-flow`](../kotlin-control-flow/DOC.md).

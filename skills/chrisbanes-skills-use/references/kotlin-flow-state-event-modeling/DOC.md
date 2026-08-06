@@ -177,4 +177,4 @@ If you're tempted to reach for `SharedFlow`, ask: would dropping an emission be 
 - [`kotlin-control-flow`](../kotlin-control-flow/DOC.md) — choosing `when`, guard conditions, exhaustiveness, smart casts, and early returns when modeling state and events.
 - [`kotlin-coroutines-structured-concurrency`](../kotlin-coroutines-structured-concurrency/DOC.md) — scope ownership, init launches, fire-and-forget boundaries, cancellation, `runBlocking`
 - [`compose-side-effects`](../compose-side-effects/DOC.md) — collecting event flows and wiring side effects in Compose
-- [`compose-state-holder-ui-split`](../compose-state-holder-ui-split/DOC.md) — where state holders expose flows to UI
+- [`compose-state-hoisting`](../compose-state-hoisting/DOC.md) — where state holders expose flows to plain state-driven UI
