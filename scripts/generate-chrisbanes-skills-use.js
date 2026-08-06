@@ -8,12 +8,12 @@ const repoRoot = path.resolve(__dirname, "..");
 const skillName = "chrisbanes-skills-use";
 
 // Upstream skills excluded from the generated router. These are GitHub Project
-// workflow skills (autonomous backlog draining / planning) that are irrelevant
-// to regular Kotlin, Android, and Jetpack Compose development and account for
-// most of the generated size. Excluded skills are not copied into references/,
-// and any routing-table rows in using-chrisbanes-skills that link to them are
-// stripped to avoid dead links.
-const EXCLUDED_SKILLS = ["run-github-project", "to-plan"];
+// workflow skills (autonomous backlog draining / planning / PR shepherding) that
+// are irrelevant to regular Kotlin, Android, and Jetpack Compose development and
+// account for most of the generated size. Excluded skills are not copied into
+// references/, and any routing-table rows in using-chrisbanes-skills that link
+// to them are stripped to avoid dead links.
+const EXCLUDED_SKILLS = ["run-github-project", "shepherd", "to-plan"];
 
 const defaults = {
   source: "upstream/chrisbanes-skills/skills",

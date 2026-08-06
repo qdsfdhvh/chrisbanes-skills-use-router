@@ -28,7 +28,6 @@ If a request already clearly matches a focused skill, use that skill directly. I
 | Kotlin Multiplatform platform APIs, source set boundaries, `expect`/`actual`, interfaces for platform services, permissions, files, sensors, native SDKs, or Compose Multiplatform interop | [`kotlin-multiplatform-expect-actual`](../kotlin-multiplatform-expect-actual/DOC.md) |
 | Kotlin function placement, member vs top-level function, extension functions, factories, primitive receivers, or extensions on String, collections, Flow, framework, or third-party types | [`kotlin-functions`](../kotlin-functions/DOC.md) |
 | Single-field domain types, primitive obsession, or choosing `@JvmInline value class` vs `data class` | [`kotlin-types-value-class`](../kotlin-types-value-class/DOC.md) |
-| Polling or shepherding PRs/MRs, triaging review comments, fixing CI failures, or keeping reviews moving | [`shepherd`](../shepherd/DOC.md) |
 
 ## Combining skills
 

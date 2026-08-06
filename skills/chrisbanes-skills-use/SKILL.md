@@ -1,7 +1,7 @@
 ---
 name: chrisbanes-skills-use
 version: "2026.8.1"
-description: "Use this skill when a Kotlin, Android, Jetpack Compose, Compose Multiplatform, coroutine, Flow, KMP, UI testing, UI API design, recomposition/performance, focus/navigation, animation, or PR shepherding task may benefit from chrisbanes/skills but installing or triggering every focused skill would be too broad. Route broad or unclear tasks through the copied using-chrisbanes-skills guide, then read only the focused reference docs it selects."
+description: "Use this skill when a Kotlin, Android, Jetpack Compose, Compose Multiplatform, coroutine, Flow, KMP, UI testing, UI API design, recomposition/performance, focus/navigation, or animation task may benefit from chrisbanes/skills but installing or triggering every focused skill would be too broad. Route broad or unclear tasks through the copied using-chrisbanes-skills guide, then read only the focused reference docs it selects."
 ---
 
 # Chrisbanes Skills Use
