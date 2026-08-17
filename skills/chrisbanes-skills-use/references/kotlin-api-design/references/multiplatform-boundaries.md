@@ -1,4 +1,3 @@
-
 # Kotlin Multiplatform: expect/actual boundaries
 
 ## Core principle
@@ -116,7 +115,6 @@ When shared UI reaches a platform leaf:
 
 Stay focused on platform boundaries in this skill; wire shared UI like any other Compose target:
 
-- [`kotlin-control-flow`](../kotlin-control-flow/DOC.md) — keeping common-code business branching explicit with `when`, guard conditions, exhaustiveness, and smart casts.
-- [`compose-state-hoisting`](../compose-state-hoisting/DOC.md) — shared plain UI composables vs state-holder wiring.
-- [`compose-side-effects`](../compose-side-effects/DOC.md) — effect keys and cleanup in actual composables (`LaunchedEffect`, `DisposableEffect`, etc.).
-- [`compose-modifier-and-layout-style`](../compose-modifier-and-layout-style/DOC.md) and [`compose-slot-api-pattern`](../compose-slot-api-pattern/DOC.md) — reusable shared Compose APIs (modifiers, slots).
+- [Kotlin control flow](../../kotlin-control-flow/DOC.md) — keeping common-code business branching explicit with `when`, guard conditions, exhaustiveness, and smart casts.
+- [Compose state and effects](../../compose-state-and-effects/DOC.md) — shared plain UI composables versus state-holder wiring and effect lifecycle.
+- [Compose component design](../../compose-component-design/DOC.md) — reusable shared Compose APIs (modifiers, slots).

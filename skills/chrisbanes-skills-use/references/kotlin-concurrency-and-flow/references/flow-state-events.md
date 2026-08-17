@@ -1,4 +1,3 @@
-
 # Kotlin Flow: state and event modeling
 
 ## Core principle
@@ -174,7 +173,6 @@ If you're tempted to reach for `SharedFlow`, ask: would dropping an emission be 
 
 ## Related
 
-- [`kotlin-control-flow`](../kotlin-control-flow/DOC.md) — choosing `when`, guard conditions, exhaustiveness, smart casts, and early returns when modeling state and events.
-- [`kotlin-coroutines-structured-concurrency`](../kotlin-coroutines-structured-concurrency/DOC.md) — scope ownership, init launches, fire-and-forget boundaries, cancellation, `runBlocking`
-- [`compose-side-effects`](../compose-side-effects/DOC.md) — collecting event flows and wiring side effects in Compose
-- [`compose-state-hoisting`](../compose-state-hoisting/DOC.md) — where state holders expose flows to plain state-driven UI
+- [Kotlin control flow](../../kotlin-control-flow/DOC.md) — choosing `when`, guard conditions, exhaustiveness, smart casts, and early returns when modeling state and events.
+- [Structured concurrency](structured-concurrency.md) — scope ownership, init launches, fire-and-forget boundaries, cancellation, `runBlocking`
+- [Compose state and effects](../../compose-state-and-effects/DOC.md) — collecting event flows and wiring state holders to plain state-driven UI

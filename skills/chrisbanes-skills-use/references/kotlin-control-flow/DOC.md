@@ -186,5 +186,5 @@ Before finishing a control-flow change, verify:
 
 ## Related
 
-- [`kotlin-flow-state-event-modeling`](../kotlin-flow-state-event-modeling/DOC.md) - flow state and event primitive choices.
-- [`kotlin-multiplatform-expect-actual`](../kotlin-multiplatform-expect-actual/DOC.md) - keeping business branching in common code and platform actuals thin.
+- [Kotlin concurrency and Flow](../kotlin-concurrency-and-flow/DOC.md) - flow state and event primitive choices.
+- [Kotlin API design](../kotlin-api-design/DOC.md) - keeping business branching in common code and platform actuals thin.

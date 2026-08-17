@@ -1,4 +1,3 @@
-
 # Kotlin function ownership
 
 ## Core principle
@@ -88,4 +87,4 @@ For every form, check visibility, imports, collisions, and compatibility. For ex
 
 ## Related
 
-- [`kotlin-types-value-class`](../kotlin-types-value-class/DOC.md)
+- [Value classes](value-classes.md)

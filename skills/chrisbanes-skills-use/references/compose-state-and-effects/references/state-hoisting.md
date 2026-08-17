@@ -1,4 +1,3 @@
-
 # Compose state hoisting
 
 ## Core principle
@@ -169,9 +168,9 @@ Pass the smallest useful UI contract:
 - Prefer explicit event callbacks over passing the whole state holder through the tree.
 - Keep navigation as callbacks that describe user intent.
 - Map domain models to UI models when direct use would pull business rules into rendering.
-- Pass provider lambdas for frame-rate values that should be read in layout or draw, per [`compose-state-deferred-reads`](../compose-state-deferred-reads/DOC.md).
+- Pass provider lambdas for frame-rate values that should be read in layout or draw, per [Compose performance](../../compose-performance/DOC.md).
 
-Handle navigation, snackbar, analytics, or event collection near the state holder, where the source and imperative target are available. If effect handling grows, extract a small sibling effect handler rather than passing the state holder into the UI composable. Use [`compose-side-effects`](../compose-side-effects/DOC.md) for effect APIs, keys, cleanup, and stale captures.
+Handle navigation, snackbar, analytics, or event collection near the state holder, where the source and imperative target are available. If effect handling grows, extract a small sibling effect handler rather than passing the state holder into the UI composable. Use [Side effects](side-effects.md) for effect APIs, keys, cleanup, and stale captures.
 
 Do not create a state-holder/UI overload for every small composable. Split at a screen or cohesive section boundary when doing so removes app dependencies from meaningful UI that should be previewed, tested, or reused.
 
@@ -203,8 +202,8 @@ For each scenario, establish RED by omitting or reverting the relevant rule, the
 
 ## Related
 
-- [`compose-state-authoring`](../compose-state-authoring/DOC.md) — correct local `remember` and mutable state authoring.
-- [`compose-side-effects`](../compose-side-effects/DOC.md) — choose effect APIs and composition-scoped coroutine boundaries.
-- [`compose-focus-navigation`](../compose-focus-navigation/DOC.md) — focus state, requesters, and keyboard/D-pad behavior.
-- [`compose-ui-testing-patterns`](../compose-ui-testing-patterns/DOC.md) — test plain state-driven UI without constructing the full app graph.
-- [`kotlin-multiplatform-expect-actual`](../kotlin-multiplatform-expect-actual/DOC.md) — keep shared UI plain while platform services stay behind semantic boundaries.
+- [Local state](local-state.md) — correct local `remember` and mutable state authoring.
+- [Side effects](side-effects.md) — choose effect APIs and composition-scoped coroutine boundaries.
+- [Compose focus navigation](../../compose-focus-navigation/DOC.md) — focus state, requesters, and keyboard/D-pad behavior.
+- [Compose UI testing patterns](../../compose-ui-testing-patterns/DOC.md) — test plain state-driven UI without constructing the full app graph.
+- [Kotlin API design](../../kotlin-api-design/DOC.md) — keep shared UI plain while platform services stay behind semantic boundaries.

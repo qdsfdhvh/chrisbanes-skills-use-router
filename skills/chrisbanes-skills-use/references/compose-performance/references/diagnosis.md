@@ -1,4 +1,3 @@
-
 # Compose recomposition performance
 
 Router only — deep fixes live in focused skills below.
@@ -15,10 +14,10 @@ Axes 2 and 3 often overlap (a sibling reading measured size in composition is bo
 
 | Primary suspicion | Next skill |
 |---|---|
-| Skipping, unstable params, compiler/`composables.txt` churn | [`compose-stability-diagnostics`](../compose-stability-diagnostics/DOC.md) |
-| Frame-rate `State` read phase (composition vs layout/draw) | [`compose-state-deferred-reads`](../compose-state-deferred-reads/DOC.md) |
-| `putAll` / map rebuild / cross-row `height(state)` during composition | [`compose-state-deferred-reads`](../compose-state-deferred-reads/DOC.md) — § back-writing |
-| Focus-driven side work in composable body | [`compose-side-effects`](../compose-side-effects/DOC.md) — `snapshotFlow` |
+| Skipping, unstable params, compiler/`composables.txt` churn | [Stability](stability.md) |
+| Frame-rate `State` read phase (composition vs layout/draw) | [Deferred reads](deferred-reads.md) |
+| `putAll` / map rebuild / cross-row `height(state)` during composition | [Deferred reads](deferred-reads.md) — § back-writing |
+| Focus-driven side work in composable body | [Compose state and effects](../../compose-state-and-effects/DOC.md) — `snapshotFlow` |
 | Evidence for multiple axes | Apply matching skills in parallel |
 
 ## Review order
@@ -48,4 +47,4 @@ These changes often **do not** reduce recomposition count:
 
 ## Related
 
-- [`compose-state-authoring`](../compose-state-authoring/DOC.md) — authoring `mutableState*` safely.
+- [Compose state and effects](../../compose-state-and-effects/DOC.md) — authoring `mutableState*` safely.

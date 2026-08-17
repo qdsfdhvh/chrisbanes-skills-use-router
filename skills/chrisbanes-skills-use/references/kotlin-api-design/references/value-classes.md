@@ -1,4 +1,3 @@
-
 # Kotlin value class vs data class
 
 ## Core principle
@@ -111,4 +110,4 @@ val Offset.y: Float get() = unpackFloat2(packedValue)
 
 ## Related
 
-- [`compose-stability-diagnostics`](../compose-stability-diagnostics/DOC.md) — diagnose unstable Compose parameters; value classes are one fix
+- [Compose performance](../../compose-performance/DOC.md) — diagnose unstable Compose parameters; value classes are one fix
