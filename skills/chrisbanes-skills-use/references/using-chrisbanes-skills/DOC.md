@@ -28,6 +28,7 @@ specialist only when its independent behavior changes the same work.
 | Coroutine scope ownership, `init { launch }`, non-suspending launch APIs, `runBlocking`, cancellation, `StateFlow`, `SharedFlow`, `Channel`, `stateIn`, or one-shot events | [`kotlin-concurrency-and-flow`](../kotlin-concurrency-and-flow/DOC.md) |
 | Kotlin branching, `when` expressions, guard conditions, sealed type exhaustiveness, smart casts, nullable branching, or complex `if`/`else` chains | [`kotlin-control-flow`](../kotlin-control-flow/DOC.md) |
 | Kotlin function placement, member versus top-level or extension functions, factories, single-field domain types, value classes, Kotlin Multiplatform source sets, expect/actual, or platform services | [`kotlin-api-design`](../kotlin-api-design/DOC.md) |
+| Planned Gradle execution, or a Gradle-centered build, check, warning-cleanup, or failure workflow | [`gradle-run`](../gradle-run/DOC.md) |
 
 ## Combining skills
 
@@ -37,6 +38,7 @@ specialist only when its independent behavior changes the same work.
 - For reusable UI components, use [`compose-component-design`](../compose-component-design/DOC.md).
 - For tests around focus behavior, use [`compose-focus-navigation`](../compose-focus-navigation/DOC.md) first, then [`compose-ui-testing-patterns`](../compose-ui-testing-patterns/DOC.md) for test shape.
 - For Kotlin state, concurrency, or platform-boundary work that also changes branching shape, combine the cluster with [`kotlin-control-flow`](../kotlin-control-flow/DOC.md).
+- Kotlin or Compose advice that performs no Gradle execution does not load [`gradle-run`](../gradle-run/DOC.md).
 
 ## RED/GREEN agent scenarios
 
