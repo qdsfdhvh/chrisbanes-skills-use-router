@@ -7,13 +7,25 @@ const { execSync } = require("child_process");
 const repoRoot = path.resolve(__dirname, "..");
 const skillName = "chrisbanes-skills-use";
 
-// Upstream skills excluded from the generated router. These are GitHub Project
-// workflow skills (autonomous backlog draining / planning / PR shepherding) that
-// are irrelevant to regular Kotlin, Android, and Jetpack Compose development and
-// account for most of the generated size. Excluded skills are not copied into
-// references/, and any routing-table rows in using-chrisbanes-skills that link
-// to them are stripped to avoid dead links.
-const EXCLUDED_SKILLS = ["run-github-project", "shepherd", "to-plan"];
+// Upstream skills excluded from the generated router:
+// - run-github-project, shepherd, to-plan: GitHub Project workflow skills
+//   (autonomous backlog draining / planning / PR shepherding) that are
+//   irrelevant to regular Kotlin, Android, and Jetpack Compose development and
+//   account for most of the generated size.
+// - grounded-writing: generic writing-style guidance, not Kotlin/Compose
+//   technical content (and it explicitly excludes ordinary assistant replies).
+// - implement-with-subagents: agent-orchestration procedure that hard-depends
+//   on a separately installed `implement` skill and runtime subagent support;
+//   dead configuration inside a doc-routing skill.
+// Excluded skills are not copied into references/, and any routing-table rows
+// in using-chrisbanes-skills that link to them are stripped to avoid dead links.
+const EXCLUDED_SKILLS = [
+  "run-github-project",
+  "shepherd",
+  "to-plan",
+  "grounded-writing",
+  "implement-with-subagents",
+];
 
 // Upstream skills may ship their own agents/openai.yaml (and the router itself
 // generates one at the skill root). Those per-skill agent configs are dead
