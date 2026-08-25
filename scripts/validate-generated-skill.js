@@ -98,6 +98,14 @@ function validate(skillDir) {
     }
   }
 
+  // Upstream skills may ship their own agents/ configs; those must never leak
+  // into references/ (the router only reads DOC.md and its sub-docs).
+  for (const entry of fs.readdirSync(refsDir, { withFileTypes: true })) {
+    if (entry.isDirectory() && fs.existsSync(path.join(refsDir, entry.name, "agents"))) {
+      fail(`Unexpected agents/ dir copied from upstream: references/${entry.name}/agents`);
+    }
+  }
+
   // Every ../<skill>/DOC.md link in the primary route guide must point at a
   // reference doc that was actually generated (catches dead links when skills
   // are excluded or upstream renames a skill).

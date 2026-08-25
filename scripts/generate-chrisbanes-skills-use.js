@@ -15,6 +15,13 @@ const skillName = "chrisbanes-skills-use";
 // to them are stripped to avoid dead links.
 const EXCLUDED_SKILLS = ["run-github-project", "shepherd", "to-plan"];
 
+// Upstream skills may ship their own agents/openai.yaml (and the router itself
+// generates one at the skill root). Those per-skill agent configs are dead
+// weight inside references/: the router only reads DOC.md and its sub-docs, so
+// copying them just inflates the generated skill. Skip the agents/ directory
+// while copying each upstream skill.
+const SKIP_DIRS = ["agents"];
+
 const defaults = {
   source: "upstream/chrisbanes-skills/skills",
   output: "skills/chrisbanes-skills-use",
@@ -115,6 +122,9 @@ function copyDir(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     if (entry.name === ".DS_Store") {
+      continue;
+    }
+    if (entry.isDirectory() && SKIP_DIRS.includes(entry.name)) {
       continue;
     }
     const srcPath = path.join(src, entry.name);

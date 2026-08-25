@@ -126,7 +126,10 @@ the submodule pointer when intentionally updating upstream.
 ## Generated Content Rules
 
 - Keep only one installed skill: `chrisbanes-skills-use`.
-- Copy upstream skill directories to `references/<skill-name>/`.
+- Copy upstream skill directories to `references/<skill-name>/`, keeping their
+  `references/` and `scripts/` sub-directories.
+- Skip each upstream skill's own `agents/` directory: those per-skill agent
+  configs are dead weight in the router, which only reads the copied docs.
 - Rename copied upstream `SKILL.md` files to `DOC.md`.
 - Strip YAML frontmatter from copied `DOC.md` files.
 - Rewrite copied markdown links from `SKILL.md` to `DOC.md`.

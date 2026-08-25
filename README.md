@@ -56,8 +56,15 @@ skills/chrisbanes-skills-use/
 ├── agents/
 │   └── openai.yaml
 └── references/
-    └── <skill-name>/DOC.md
+    └── <skill-name>/
+        ├── DOC.md
+        ├── references/   # upstream skill sub-docs, kept as-is
+        └── scripts/      # upstream tool scripts, kept as-is
 ```
+
+Upstream skill self-contained `agents/` configs are not copied into
+`references/`: the router only reads the copied docs, so those configs would be
+dead weight.
 
 ## Install
 
