@@ -19,6 +19,9 @@ the product contract.
    or hide unstructured launches behind non-suspending APIs.
 4. Model renderable, current data as state and imperative one-shot work as an
    event only when its loss and replay behavior are explicitly acceptable.
+   For a one-consumer navigation handoff that must survive a collector gap,
+   choose a buffered `Channel` exposed as `receiveAsFlow()`; do not preserve a
+   replay-zero `SharedFlow` after identifying event loss as the defect.
 5. Choose Flow sharing and buffering semantics from the producer and consumer
    lifetimes rather than from a default.
 6. Read the focused reference for the material concern below.
@@ -32,15 +35,3 @@ the product contract.
 | Stored `CoroutineScope`, `init { launch }`, fire-and-forget API, `runBlocking`, broad catch, or cancellation boundary | [Structured concurrency](references/structured-concurrency.md) |
 | `StateFlow`, `SharedFlow`, `Channel`, `stateIn`, `SharingStarted`, `.value`, state updates, sentinel values, or one-shot events | [Flow state and events](references/flow-state-events.md) |
 | Compose collection or UI effect handling | [Compose state and effects](../compose-state-and-effects/DOC.md) |
-
-## RED/GREEN agent scenarios
-
-1. RED stores a long-lived `CoroutineScope` in a service and launches from
-   arbitrary callers. GREEN makes ownership and cancellation follow a defined
-   lifecycle boundary.
-2. Novel case: a screen needs replayable loading state and non-replayable
-   navigation. GREEN uses distinct state and event contracts with documented
-   delivery semantics.
-3. Counterexample: a suspend function already has a caller-owned scope. GREEN
-   reports that no code change is necessary rather than adding an internal
-   scope merely to make the API look asynchronous.

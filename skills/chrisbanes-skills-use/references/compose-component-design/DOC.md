@@ -12,7 +12,9 @@ policy choices that vary by use.
 1. State the requested API concern and keep the edit within it. A focused slot
    review does not authorize unrelated modifier, naming, or cleanup changes.
 2. State the component's invariant visual structure and identify every varying
-   region, placement concern, and policy choice.
+   region, placement concern, and policy choice. When the request names more
+   than one of those concerns, report each one; do not stop after the first
+   valid modifier or slot finding.
 3. When root placement is part of the requested work or a broad component API
    design, accept and apply a caller modifier at the component root unless a
    concrete API boundary makes another placement correct.
@@ -35,18 +37,3 @@ policy choices that vary by use.
 | Animation belongs to the public component contract | [Compose animations](../compose-animations/DOC.md) |
 | State ownership changes while designing the component | [Compose state and effects](../compose-state-and-effects/DOC.md) |
 | Semantics or screenshot coverage is needed | [Compose UI testing patterns](../compose-ui-testing-patterns/DOC.md) |
-
-## RED/GREEN agent scenarios
-
-1. RED exposes `title: String`, `icon: ImageVector?`, and several display
-   flags for a reusable card. GREEN keeps invariant chrome and gives callers
-   the variable regions as named slots.
-2. Novel case: a component needs both a root modifier and caller-supplied
-   trailing content. GREEN applies the modifier at the root and supplies a
-   trailing slot without leaking the component's `RowScope`; reserve a scope
-   receiver for a region whose child layout is deliberately caller-controlled.
-3. Counterexample: a private screen helper has one fixed child and no callers.
-   GREEN keeps it simple instead of inventing slots for hypothetical reuse.
-4. Focused counterexample: a status label intentionally maps a semantic enum to
-   fixed copy, and the task asks only whether it needs slots. GREEN leaves the
-   workspace unchanged instead of adding an unrelated root modifier.
