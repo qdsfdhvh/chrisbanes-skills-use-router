@@ -32,7 +32,7 @@ only when its independent behavior changes the same work.
 | Visibility, value, transition, content-swap, or other motion API choice | [`compose-animations`](../compose-animations/DOC.md) |
 | Keyboard, TV, D-pad, focus targets, custom traversal, or key events | [`compose-focus-navigation`](../compose-focus-navigation/DOC.md) |
 | Compose UI, screenshot, semantics, focus/key, or interaction-state tests | [`compose-ui-testing-patterns`](../compose-ui-testing-patterns/DOC.md) |
-| Coroutine ownership, cancellation, Flow state/events, sharing, or replay | [`kotlin-concurrency-and-flow`](../kotlin-concurrency-and-flow/DOC.md) |
+| Coroutine ownership, raw `Thread` or `Executor` work, cancellation, Flow state/events, sharing, or replay | [`kotlin-concurrency-and-flow`](../kotlin-concurrency-and-flow/DOC.md) |
 | Kotlin classification, `when`, guards, exhaustiveness, smart casts, or null branches | [`kotlin-control-flow`](../kotlin-control-flow/DOC.md) |
 | Kotlin function ownership, domain types, expect/actual, or platform seams | [`kotlin-api-design`](../kotlin-api-design/DOC.md) |
 | Planned Gradle execution or a Gradle-centered warning/failure workflow | [`gradle-run`](../gradle-run/DOC.md) |
