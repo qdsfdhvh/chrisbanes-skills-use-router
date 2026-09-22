@@ -9,7 +9,9 @@ only when its independent behavior changes the same work.
 
 ## Routing procedure
 
-1. Read the task and the Kotlin source that makes the concern concrete.
+1. Read the task. For Kotlin or Compose work, inspect the source that makes the
+   concern concrete. For an Android benchmark comparison, inspect the supplied
+   reports, configurations, and traces instead.
 2. If one focused skill clearly matches, load it directly and stop routing.
 3. Before loading a Compose skill, point to a concrete Compose API or composable
    in the inspected source, or to an explicit request to create or design
@@ -36,6 +38,8 @@ only when its independent behavior changes the same work.
 | Kotlin classification, `when`, guards, exhaustiveness, smart casts, or null branches | [`kotlin-control-flow`](../kotlin-control-flow/DOC.md) |
 | Kotlin function ownership, domain types, expect/actual, or platform seams | [`kotlin-api-design`](../kotlin-api-design/DOC.md) |
 | Planned Gradle execution or a Gradle-centered warning/failure workflow | [`gradle-run`](../gradle-run/DOC.md) |
+| Comparing physical Android benchmark configurations, reversed rankings, or an Android default | [`android-benchmark-comparison`](../android-benchmark-comparison/DOC.md) |
+| Kotlin library release preparation, publication, or readiness | [`release-kotlin-library`](../release-kotlin-library/DOC.md) |
 
 ## Combination boundaries
 
