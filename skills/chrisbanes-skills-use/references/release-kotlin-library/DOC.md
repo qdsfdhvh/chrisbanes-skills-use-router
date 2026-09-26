@@ -17,41 +17,28 @@ snapshots when the repository does not maintain them.
 
 1. Establish scope and inspect repository instructions, Git state, release
    history, version properties, publishing configuration and required checks.
-   Confirm that published modules apply `com.vanniktech.maven.publish`, directly
-   or through a convention plugin. A declaration without application is not
-   sufficient. If absent or unverified, report the unmet prerequisite and stop
-   before release mutations; do not install or migrate publishing plugins.
-   Distinguish a readiness review, preparation request and explicit release
-   authorization. Keep review requests read-only, including credentials. Follow
-   the existing local or CI publishing mechanism; do not migrate it. Read the
+   Confirm published modules apply `com.vanniktech.maven.publish` directly or
+   via a convention plugin; declaration alone is insufficient. If absent
+   or unverified, report it and stop before release mutations; do not install
+   or migrate publishing plugins.
+   Distinguish readiness review, preparation and explicit release authorization;
+   select the matching finish path before proceeding.
+   For recovery or recovery review, select and read the
+   [recovery answer form](references/recovery-output.md) before analysis. For
+   changelog-related review, also read [the changelog procedure](references/changelog.md).
+   For preparation or changelog-only work, read the
+   [preparation answer form](references/preparation-output.md) alone in a
+   standalone command before analysis. Check that the returned output contains
+   the complete form, from its heading through its final sentence; if not,
+   stop and recover that read before proceeding.
+   Keep reviews read-only, including credentials. Follow the existing local or
+   CI publishing mechanism; do not migrate it. Read the
    [helper contract](references/helper.md) before configuring the bundled script.
    Stop before mutation on unsupported layouts or ambiguous destinations.
-2. Resolve the previous applicable release using tag conventions and ancestry.
-   For a final release, use the previous stable release as the changelog
-   baseline, covering the entire release cycle rather than only the latest RC
-   delta (for example, 1.x to 2.0.0, not 2.0.0-rc00 to 2.0.0). For prereleases,
-   retain the repository's incremental baseline convention. If this is the first
-   stable release, summarize the release history from the project's beginning.
-   An ambiguous baseline needs resolution, not a lexically highest tag guess.
-   Use supplied release and next development versions. Propose and confirm each
-   missing value before mutation; do not silently increment a prerelease to the
-   next patch snapshot.
-3. If `CHANGELOG.md` exists, compare its `Unreleased` section against the complete
-   changes since the baseline: inspect history, diffs and relevant issue or PR
-   evidence. Preserve curated wording, add missing consumer-visible changes,
-   correct inaccurate entries, and omit internal-only changes with no consumer
-   impact. Resolve uncertain coverage before publication. Report reviewed scope
-   and unresolved gaps; a heading check cannot prove semantic completeness.
-   For final releases, consolidate consumer-visible changes from alpha, beta
-   and RC entries with Unreleased into a coherent summary of the full release,
-   including breaking changes and migration guidance. Deduplicate repeated
-   entries and describe the final behavior; omit superseded prerelease behavior
-   from the summary only. Keep the changelog as the source of truth: retain
-   original prerelease notes in full, never replace them with release-page links.
-   Preserve existing formatting and prior release entries. If the file is
-   absent, skip this step without creating it. Commit only authorized changelog
-   corrections before invoking preparation, so its clean-worktree gate holds.
-4. Identify repository release checks, including tests and Metalava API
+2. Before preparation, read [the changelog procedure](references/changelog.md)
+   completely; resolve baseline, version and coverage ambiguity. Do not guess
+   or create a changelog.
+3. Identify repository release checks, including tests and Metalava API
    generation and compatibility checks where configured. Confirm that API files
    are current before snapshotting; the helper copies them without running
    Metalava. Do not treat other API dump formats as Metalava snapshots.
@@ -60,7 +47,7 @@ snapshots when the repository does not maintain them.
    use [gradle-run](../gradle-run/DOC.md), with `--no-scan` unless a scan is
    explicitly authorized. Fix failed checks within authorized scope; otherwise
    stop with the failing gate and next action.
-5. Configure and preflight the helper with explicit versions, paths, heading
+4. Configure and preflight the helper with explicit versions, paths, heading
    style, API snapshot applicability, branch, remote, tag and command arguments.
    Keep configuration and evidence outside tracked release files. Check the
    index, snapshot collisions and local/remote destinations before writes. Load
@@ -69,18 +56,24 @@ snapshots when the repository does not maintain them.
    block local publication; do not request or log their values. For tag-triggered
    CI, use existing Git authentication and CI-managed publishing secrets without
    loading or requiring local dotenv values.
-6. Prepare the release: update the version, finalize the changelog heading and
+5. Prepare the release: update the version, finalize the changelog heading and
    applicable published-module API snapshots, run configured checks, and commit
-   only release files. When finalizing a stable release entry, group that cycle's
-   original prerelease entries beneath its summary in a `<details>` block with
-   `<summary>Prerelease history</summary>`. Preserve their headings, anchors,
+   only release files. When finalizing a stable release entry, draft the stable
+   summary from every surviving coverage-ledger row in final-behavior wording
+   before grouping that cycle's original prerelease entries beneath it in a
+   `<details>` block with
+   `<summary>Prerelease history</summary>`. Move the original prerelease entries
+   as one block without reordering them. Preserve their headings, anchors,
    dates and text, with blank lines around the enclosed Markdown. Leave older
-   stable releases outside the block and active prerelease cycles expanded. If
-   the changelog renderer does not support collapsible HTML, retain the entries
-   expanded. Inspect the resulting commit. Bind validation evidence to
+   stable releases outside the block. If the renderer lacks collapsible HTML,
+   retain expanded entries. Before handing off, compare the actual stable
+   summary against every surviving row in the coverage ledger; confirm each
+   appears outside prerelease history and add any missing surviving change to
+   the stable summary. Compare the grouped history against the source to verify
+   its original entry order. Inspect the resulting commit. Bind validation to
    this state and invalidate it if relevant code changes. The helper must not
    publish during preparation.
-7. Present the prepared release for explicit user approval before publication:
+6. Present the prepared release for explicit user approval before publication:
    release version and tag, finalized changelog (or its absence), next development
    version, release commit, artifact coordinates and destination, publishing
    mechanism, and validation results. Provide the actual notes or a directly
@@ -91,26 +84,32 @@ snapshots when the repository does not maintain them.
    versions, notes or publishing scope change, prepare and validate the revised
    release and obtain approval again. Preparation-only and readiness requests
    stop at their requested scope without soliciting publication approval.
-8. Once the prepared release is approved and all gates pass, publish from that
+7. Once the prepared release is approved and all gates pass, publish from that
    commit via the repository's selected mechanism. Local publication and
    tag-triggered CI are alternatives; do not run both. Do not publish artifacts,
    push a release tag or trigger publishing CI before approval.
-9. Verify all expected artifact coordinates and versions at the configured
+8. Verify all expected artifact coordinates and versions at the configured
    destination, along with CI completion when applicable. Verify the remote tag
    resolves to the prepared commit. A successful command or tag alone is not
    artifact evidence. Only then advance, commit, push and verify the agreed
    next development version. Create and read back a GitHub Release only when
    repository conventions call for it, using the finalized release notes.
-10. On partial or uncertain success, stop dependent mutations and report verified,
+9. On partial or uncertain success, stop dependent mutations and report verified,
    failed and unknown stages without secrets. Inspect live artifact, workflow,
    tag and branch state before recovery; never blindly repeat publication,
    overwrite remote tags, delete published artifacts or claim rollback. Resume
    only a proven remaining action within existing authorization.
 
-## Finish gate
+## Finish paths
 
-Report the release version, release commit/tag, validation evidence, artifact
-readback, next development commit and conditional GitHub Release URL. Claim
-completion only when every applicable check passes. For review, preparation or
-blocked work, state that narrower outcome and the remaining gate explicitly.
-Do not expose credential contents or raw sensitive command output.
+- **Preparation, including changelog-only:** Fill the selected preparation
+  answer form. Show actual reviewable notes or diff, remaining checks, and the
+  explicit later publication-approval gate; do not request approval now.
+- **Recovery/recovery review:** Fill the selected recovery answer form; check
+  every applicable disposition before replying.
+- **Completed release:** Report release version, commit/tag, validation,
+  artifact readback, next development commit, and conditional GitHub Release
+  URL. Claim completion only when every applicable check passes.
+
+For a readiness review or blocker, state that narrower outcome and remaining
+gate. Do not expose credential contents or raw sensitive command output.

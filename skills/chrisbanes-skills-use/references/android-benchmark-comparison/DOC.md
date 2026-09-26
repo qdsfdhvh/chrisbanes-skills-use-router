@@ -21,13 +21,19 @@ or choosing a default.
 3. Balance or reverse run order and repeat the comparison. Report the spread
    and whether the ordering holds; do not discard slow iterations after seeing
    the result.
-4. When rankings reverse or variability is material, investigate before making
-   the decision. Use traces to check the measured interval and plausible
-   causes such as CPU placement, contention, or thermal state. A fixed-
-   performance setting does not prove CPU placement. If affinity is used,
-   discover the device topology, verify placement during the measured trace
-   interval, label the outcome a controlled comparison, and restore device
-   settings afterwards.
+4. When rankings reverse or variability is material, defer a firm default
+   decision until the reversal is resolved. Give the complete next comparison,
+   not just its first blocker: confirm the same named cases and iterations,
+   repeat with balanced or reversed run order, and inspect trace data whose
+   timestamps overlap each measured interval for placement, contention, or
+   thermal changes. Fixed-performance mode does not
+   prove CPU placement. If an affinity experiment was attempted, discover the
+   device topology and verify placement during the measured interval. Restore
+   the recorded original affinity settings after the experiment and verify that
+   restoration before another run; do not merely note that restoration needs
+   checking. Label verified affinity runs as controlled comparisons. If the
+   original settings or any other check are unavailable, state the gap and keep
+   any default choice explicitly provisional.
 5. Calculate summaries from unrounded observations, then round only for
    presentation. Name the aggregation explicitly: the mean of per-run
    percentiles is not a percentile of pooled observations. Choose an
@@ -40,7 +46,12 @@ or choosing a default.
    without claiming it measures GPU shader time.
 7. Finish with the raw-evidence location, completed-case counts, variability,
    trace findings, controls and restoration status, plus the bounded decision
-   or remaining uncertainty.
+   or remaining uncertainty. When a reversal is unresolved, state the full
+   sequence still needed: matching coverage, balanced or reversed order,
+   measured-interval trace inspection, and restoration of any changed affinity
+   settings. Name *run order* explicitly in the recommendation: a "balanced
+   comparison" alone does not tell the team to balance or reverse run order.
+   Label any earlier default choice provisional.
 
 ## Boundaries
 

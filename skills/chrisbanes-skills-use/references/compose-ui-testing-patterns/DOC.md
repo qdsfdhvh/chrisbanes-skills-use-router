@@ -92,46 +92,17 @@ Do not use `Thread.sleep` to wait for Compose. Drive the UI to a known state, th
 
 ## Interaction state with MutableInteractionSource
 
-When a composable's appearance or behavior depends on interaction state (hover, focus, press, drag), inject a `MutableInteractionSource` and emit the desired state directly. Do not try to simulate pointer/mouse events to trigger interaction states — that approach is fragile, environment-dependent, and produces flaky tests.
-
-```kotlin
-val interactionSource = MutableInteractionSource()
-
-composeTestRule.setContent {
-    OutlinedButton(
-        onClick = {},
-        interactionSource = interactionSource,
-    )
-}
-
-// Assert default (un-hovered) state
-composeTestRule.onNodeWithText("OutlinedButton").assertIsDisplayed()
-
-// Emit hover — interactionSource.emit is a suspend function,
-// so call it from a test coroutine scope.
-TestScope().launch {
-    interactionSource.emit(HoverInteraction.Enter())
-}
-
-composeTestRule.waitForIdle()
-
-// Assert the visual/semantic change that hover produces
-// (e.g., border color, elevation, or capture for screenshot test)
-composeTestRule.onNodeWithText("OutlinedButton").assertIsDisplayed()
-```
-
-The same pattern works for `PressInteraction.Press` / `Release` / `Cancel`, `FocusInteraction.Focus` / `Unfocus`, and `DragInteraction.Start` / `Stop` / `Cancel`. Emit the entry interaction, `waitForIdle`, then assert the result.
-
-Key points:
-
-- **Always inject `MutableInteractionSource`** rather than relying on the default internal source. This gives you full control over state transitions.
-- **Emit interactions from a coroutine scope** (e.g. `TestScope().launch { }`) since `emit` is a suspend function. Do not use `LaunchedEffect` — that is a production Compose effect, not a test tool.
-- **Assert the *result* of the interaction** (visual change, semantic change, enabled state), not the interaction itself. The interaction source is a test *driver*, not the assertion target.
-- **Use this for screenshot tests too** — emit the interaction state, then capture the screenshot for a deterministic hover/press/focus visual.
+When interaction state is the concern, read
+[the interaction-state procedure](references/interaction-state.md) completely
+before writing or reviewing the test. It requires direct, injected interaction
+state rather than fragile pointer simulation.
 
 ## Keyboard and focus
 
 For keyboard, TV, and desktop UI, drive navigation with the same input model users use (keys/D-pad), not clicks alone. Assert focused semantics, not colors or scale; reserve screenshots for visual focus treatment.
+If the inspected composable exposes no input surface that can change the state,
+name the missing host or parent interaction seam before proposing a key-driven
+test; do not assume a selector or control exists in the supplied UI.
 
 Details—focus graph, `FocusRequester`, restoration, key handlers, and test patterns: [`compose-focus-navigation`](../compose-focus-navigation/DOC.md).
 
@@ -160,8 +131,13 @@ Keep screenshot state deterministic:
 - Keep an explicit fixed value when that fixed resolution or geometry is the
   contract.
 - Verify recording separately from comparison: inspect the expected artifact
-  paths and intentional baseline diff. A passing comparison does not prove that
-  recording occurred. Keep tool-specific commands in the repository runbook.
+  paths and intentional baseline diff. Read the exact output path from the test,
+  confirm that artifact exists, and name that literal path in the verification
+  evidence. When a verification log reports a pass, state what passed and then
+  check recording independently; a passing comparison does not prove that
+  recording wrote the artifact. If the artifact or baseline diff is
+  unavailable, report that gap rather than claiming recording succeeded. Keep
+  tool-specific commands in the repository runbook.
 
 ## Fake images and platform services
 

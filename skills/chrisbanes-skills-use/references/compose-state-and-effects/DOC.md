@@ -25,12 +25,21 @@ from app wiring and composition-owned runtime objects.
    rendering in a previewable content composable that takes immutable state
    and callbacks. Read [State hoisting](references/state-hoisting.md) for the
    implementation shape; naming only state and intents is not that boundary.
+   Keep this content callable with sample state and callbacks; an `@Preview`
+   wrapper is optional and is not required for the state-driven boundary.
+   Before adding it, confirm the module declares its tooling; do not assume
+   Compose runtime or UI dependencies provide it. Respect the task's file
+   scope: do not add tooling or change build files unless authorized. If
+   Preview tooling is needed but unavailable within scope, omit the wrapper
+   and report the setup gap.
 5. Choose an effect API whose lifecycle matches the work, and key it by the
    semantic input that should restart or dispose it.
 6. Load the focused reference for every material concern below. Do not use a
    reference merely because its topic is adjacent.
 7. Route frame-rate reads, cross-phase back-writing, and
    `@ReadOnlyComposable` contracts to [Compose performance](../compose-performance/DOC.md).
+   For that contract, distinguish a read of snapshot `State.value` from an
+   operation that changes the composer; the state read alone is not a violation.
 8. Before responding to a screen-ownership review, verify all three screen
    seams in step 4 when visible code needs them.
 9. Finish when every state value has one owner, every effect has a justified

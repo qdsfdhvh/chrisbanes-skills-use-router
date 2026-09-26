@@ -12,8 +12,10 @@ policy choices that vary by use.
 1. State the requested API concern and keep the edit within it. A focused slot
    review does not authorize unrelated modifier, naming, or cleanup changes.
 2. State the component's invariant visual structure and identify every varying
-   region, placement concern, and policy choice. When the request names more
-   than one of those concerns, report each one; do not stop after the first
+   region, placement concern, and policy choice. In a broad API review, inventory
+   all rendered regions, including hard-coded text or icons, before deciding
+   which are fixed semantic content and which vary by caller. When the request
+   names more than one concern, report each one; do not stop after the first
    valid modifier or slot finding.
 3. When root placement is part of the requested work or a broad component API
    design, accept and apply a caller modifier at the component root unless a
@@ -24,9 +26,12 @@ policy choices that vary by use.
 5. Keep simple conditional structure inline; extract only a coherent reusable
    contract.
 6. Read the relevant focused reference below before editing public signatures.
-7. Finish with no edit when the existing API already satisfies the requested
-   concern. Otherwise finish when callers can position the component, supply
-   variable content, and understand ownership without hidden switches.
+7. In a review, decide explicitly whether each requested variable visual region
+   should remain a semantic primitive or become a caller slot; naming a content
+   limitation alone does not make that API decision. Finish with no edit when
+   the existing API already satisfies the requested concern. Otherwise finish
+   when callers can position the component, supply variable content, and
+   understand ownership without hidden switches.
 
 ## Topic router
 
