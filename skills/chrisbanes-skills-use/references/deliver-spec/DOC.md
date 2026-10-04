@@ -3,12 +3,12 @@
 
 ## Core principle
 
-Deliver one spec through coordinated implementation owners and independent
-review. The delivery lead owns architecture, integration, task acceptance,
-repairs to lead-owned coordination work, non-merge PR delivery, and final-head
-evidence; workers own settled, bounded implementation tasks and their repairs.
-Manage approval in standalone mode; accept the controller's verified authority
-in Project mode. Never select work from a Project queue.
+Deliver one approved outcome with proportional validation and independent final
+review. The lead owns architecture, integration and delivery, and may implement
+tightly coupled work directly. Delegate when independent work, isolation or
+specialist investigation justifies the overhead. Preserve explicit ownership,
+external-action permissions, execution budgets and invocation-specific merge
+authority. Never select work from a Project queue.
 
 ## Select the mode
 
@@ -30,62 +30,46 @@ Project run already owns that issue, return it to that controller.
    approved outcome; do not change labels yourself. Local sources skip GitHub
    triage but need explicit stakeholder approval. Reuse a current `to-plan`
    plan, or invoke `to-plan` and honor its readiness and publication gates.
-3. Before approval or execution, require independent plan review against the
-   source, acceptance criteria, code facts, dependencies, and tests. Resolve
-   findings through `to-plan` and reapprove repaired conversation plans. Stop
-   without a reviewed and approved plan.
-4. Reconcile implementation and acceptance evidence before dispatch; never
-   reassign accepted work or reimplement a current candidate just to satisfy
-   worker routing. Resolve final-reviewer capability before any implementation
-   and worker capability/capacity before new nontrivial work or a worker repair.
-   Before either implementation path, record the fixed base and use a clean
-   task checkout. Stop if unrelated uncommitted changes are present. Reuse a
-   suitable clean checkout; create isolated worktrees only when concurrency or
-   repository isolation requires them.
-   Assign each new settled task to a worker, including one task in sequential
-   work; do not split tasks artificially. The lead may directly edit only a
-   fully understood, low-risk change when handoff clearly costs more and no
-   useful concurrent work exists. Record that reason; the lead owns repairs to
-   this initial edit, never a worker's task. This exception needs no worker.
-   Otherwise follow the bundled [implementation procedure](references/implementation-mode.md)
-   for single, sequential and concurrent tasks. It owns worker capability,
-   isolation, dispatch, capacity, acceptance, integration, waiting and
-   same-owner repair. Dispatch proven independent work by default without a
-   separate request for parallelism; keep making useful independent progress
-   while workers run. For
-   behavior changes, require approved test seams and the separately installed
-   `tdd` skill before editing; stop if unavailable. Use focused validation when
-   there is no meaningful test seam. Follow [Evidence and review](references/evidence-and-review.md)
-   for evidence provenance, applicability, amendment reuse and reviewer packets.
-5. Each implementation owner self-reviews, commits only task-owned changes,
-   and reports required checks with provenance under Evidence and review; this
-   also applies to the lead's qualifying edit. Accept each delegated task once
-   before integration. Require one fresh independent read-only reviewer per
-   delivery PR, with capability resolved before implementation. If unavailable,
-   report a blocker; never waive review. Use an investigator in review mode or
-   equivalent without inherited implementation context. Give it the local
-   evidence reference's owner-only packet, including prior findings and
-   dispositions. Require evidence-backed requirements and standards findings
-   with a `ship`, `fix-first`, or `rethink` verdict. Honor explicitly invoked
-   provider contracts, scope, roles, capacity and output; report missing
-   coverage rather than narrowing or substituting. The default route needs no
-   external review skill or tracker. Reuse a current joined review from the
-   bundled procedure only when it covers the exact inputs; add reviewers only
-   for distinct risks or substantial scope. Return findings to the owner. After
-   repairs, rerun affected checks and review changed ranges and interactions;
-   broaden when evidence is invalid or scope cannot be bounded. Confirm combined
-   coverage of the final clean head before pushing. Create and verify one draft
-   PR for a nonempty integrated diff, or reuse the verified PR on resume. Use
-   closing links only for verified GitHub issues.
-6. Use `shepherd` for CI and reviewer feedback and PR operations. Keep code
-   repairs with the original implementation owner; only repairs to the lead's
-   permitted initial direct edit remain with the lead. Never move a worker's
-   repair to the lead.
-   Apply the same TDD, validation, and independent review gates to repairs and
-   recheck the final head after each push. Return scope or design changes for a
-   decision. Merge only with explicit authority valid for this invocation.
-   After about 30 minutes of pending gates, hand back the exact pending checks,
-   feedback, PR, and head for later resume.
+   Approval covers the accepted contract and only the live qualification
+   allowances it explicitly records; do not infer extra attempts or authority.
+3. Verify scope and boundaries once. A verified handoff authorizes continuing
+   in-scope implementation, testing and repairs in the isolated checkout;
+   require no per-file or per-stage permission packets. Reuse valid plans,
+   reviews and checks. Require earlier independent review only for a concrete
+   risk that must be settled before proceeding, such as freezing experimental
+   labels before observing outputs. Establish reviewer capability from runtime
+   metadata, never by spawning a capability-only reviewer. If final review
+   cannot run, report that delivery blocker without waiving review.
+4. Follow the bundled [implementation procedure](references/implementation-mode.md)
+   for solo or delegated work, ownership, isolation and recovery. Reconcile
+   retained work before implementing; never redo accepted work for routing.
+   Follow [Evidence and review](references/evidence-and-review.md) for testing,
+   corrections and the single reusable delivery record. When the source requires
+   asynchronous or persistent live qualification, apply
+   [Live qualification and failure recovery](references/qualification-failure.md)
+   before attempts and resumes; do not add it to ordinary offline work.
+5. Self-review the integrated candidate, run required checks, then use one
+   independent read-only reviewer per delivery PR against requirements,
+   repository standards and the complete diff. Use an investigator in review
+   mode or equivalent without inherited implementation context. Reuse valid
+   independent coverage; do not duplicate a plan or implementation review.
+   Require evidence-backed findings and a `ship`, `fix-first`, or `rethink`
+   verdict. Honor explicitly invoked provider contracts and report missing
+   coverage. Return findings to the implementation owner, renew affected checks
+   and review changed ranges and interactions. Broaden only when impact cannot
+   be bounded or an explicit requirement demands it. Confirm combined coverage
+   of the final clean head before pushing. Create and verify one draft PR for
+   a nonempty integrated diff, or reuse the existing PR. Use closing links only
+   for verified GitHub issues.
+6. Use `shepherd` for CI, feedback and PR operations. Keep repairs with their
+   implementation owner and apply the same proportional validation and focused
+   repair review. Routine implementation or fixture corrections preserving
+   requirements, coverage, architecture and authority proceed under the existing
+   approval; record them briefly. Material changes require the appropriate
+   decision and replan before affected work continues. Weakened qualification
+   or expanded permissions are material. Merge only with explicit authority
+   valid for this invocation. After about 30 minutes of pending gates, hand back
+   the exact pending checks, feedback, PR and head for later resume.
 
 ## Finish gate
 
