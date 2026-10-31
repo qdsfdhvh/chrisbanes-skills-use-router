@@ -44,6 +44,7 @@ only when its independent behavior changes the same work.
 | Kotlin function ownership, domain types, expect/actual, or platform seams | [`kotlin-api-design`](../kotlin-api-design/DOC.md) |
 | Planned Gradle execution or a Gradle-centered warning/failure workflow | [`gradle-run`](../gradle-run/DOC.md) |
 | Comparing physical Android benchmark configurations, reversed rankings, or an Android default | [`android-benchmark-comparison`](../android-benchmark-comparison/DOC.md) |
+| Unreleased changelog maintenance or specified-release notes | [`changelog`](../changelog/DOC.md) |
 | Kotlin library release preparation, publication, or readiness | [`release-kotlin-library`](../release-kotlin-library/DOC.md) |
 
 ## Combination boundaries
