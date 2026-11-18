@@ -1,0 +1,33 @@
+# Review and setup lanes
+
+For binding validation or configuration, read the selected
+[GitHub](github-binding.md#binding-validation) or
+[Jira](jira-binding.md#binding-validation) binding before acting.
+
+## Review
+
+Read only the repository, supplied state, and remote state the user permits.
+Apply live-authority, controller-ownership, unknown-outcome, and preservation
+invariants to the requested seam. Do not configure a binding, rank/claim/
+transition/triage/plan/delegate Project work, mutate issues/PRs/Project items,
+push, merge, or close. Do not require execution dependencies, authority, or
+agent capacity. Finish `review-complete` with evidence, safe next action, and
+uncertainty, or `review-blocked` when permitted evidence is insufficient.
+
+For a supplied implementation routing decision, use
+[Implementation ownership](subagent-selection.md#implementation-ownership)
+with the described runtime and grants. Report the expected route or
+ticket-local blocker and the unrelated work that can proceed.
+
+## Setup
+
+For Jira, use its [read-only setup validation](jira-binding.md#binding-validation).
+For GitHub, detect legacy boards/configuration through the
+[approval-gated migration](github-binding.md#approval-gated-legacy-migration)
+before ordinary setup. Discovery and a dry run grant no mutation authority.
+Follow [GitHub setup](github-binding.md#setup), including its additive setup,
+active-lease, confirmation and finish gates. For a `gitlab` code host, also
+apply the read-only [GitLab setup](gitlab-binding.md#setup). An absent override file uses
+read-only default resolution and may finish `configuration-valid`; only requested
+file edits need the trusted committed instruction/configuration pair. Execution validates read-only; it
+never enters setup repair.
