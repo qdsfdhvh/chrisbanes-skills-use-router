@@ -46,6 +46,9 @@ verification.
    writes and recovery. Loss of that role stops the planner and writers, releases
    capacity, and preserves assignment, draft, worktree and every artifact until
    human restoration. Neither planner nor controller adds or restores the role.
+   Before planning writes for an issue named by a trusted GitHub Project binding's
+   retained migration table, verify its release under
+   [retained claims](#retain-claims-across-legacy-migration).
    Prefer the connector; use the GitHub access fallback below when needed.
 2. **`read-markers`:** Paginate every issue comment, including minimized ones.
    Return exact API-decoded `body`, stable comment ID/permalink, author,
@@ -111,6 +114,9 @@ retains its trusted configuration, leases and merge/closure policy.
    keywords apply only with explicit closure authority for every intended item,
    and only to verified GitHub issues fully satisfied by this PR,
    under `closing-keyword` when the target is the repository default branch.
+   Record the intended repository-qualified set before writing. For grouped
+   delivery, verify native eligibility, full satisfaction and closure authority
+   for each intended issue. A parent or sibling link grants no closure.
    Use `Fixes #<number>` only for the same repository, or a repository-qualified
    closing reference for an explicitly intended cross-repository GitHub issue
    whose native closure is verified. A non-default base, `close-after-merge`,
@@ -138,16 +144,21 @@ retains its trusted configuration, leases and merge/closure policy.
    intended issues are closed after merge; do not equate PR merged with issue
    closed. Under `close-after-merge`, only the authorized standalone lead or
    owning controller may close the verified issue after merge readback and
-   renewed full-contract/remaining-work checks; refetch closed state. Partial
-   delivery leaves it open. For a different tracker, return merge evidence to
-   that tracker's binding; never call a GitHub issue close with its key. Failed
-   or unknown closure preserves merged evidence and blocks ticket completion;
-   reconcile before any retry. Use Unintended Closure for authorized recovery
-   of an unintended GitHub closure, preserving concurrent human changes.
+   renewed full-contract/remaining-work checks. For
+   [verified no-change](provider-bindings.md#verified-no-change-closure), use
+   the same tracker close for the exact issue after that route's acceptance,
+   dependency and explicit tracker-grant checks, without a host merge. Refetch
+   the repository-qualified issue and require authoritative `CLOSED` readback.
+   Partial delivery leaves it open. A different tracker uses its own binding.
+   Failed or unknown closure preserves acceptance and any merge evidence and
+   blocks ticket completion. Reconcile exact issue state before any retry. Use
+   Unintended Closure for authorized recovery of an unintended GitHub closure,
+   preserving concurrent human changes.
 8. Finish with PR identity/head/base, check/review applicability, effective
    closing references, merge readback and separate tracker closure readback.
-   Controller Done/cleanup still requires its terminal reconciliation; a merged
-   PR alone cannot satisfy that finish gate.
+   For verified no-change, report acceptance evidence and tracker readback with
+   PR and merge inapplicable. Controller Done/cleanup still requires its
+   terminal reconciliation.
 
 ## Binding validation
 
@@ -174,22 +185,38 @@ Only an already trusted, committed display-name-only edit may use
    defaults; execution returns `configuration-blocked` and never migrates.
 2. Select **Tracker** and **Code host** independently (default `github` for
    each; a `gitlab` code host uses the [GitLab binding](gitlab-binding.md);
-   other providers need their own supported binding), then **Scope** from
-   the explicit override or invocation: a Project URL selects a board;
-   `deliver #N` or an explicit parent issue URL selects its open descendants.
-   Resolve exactly one canonical URL, repository identity and stable node ID;
-   resolve a short `#N` only against the verified checkout repository in step 3.
-   Validate any identity pins against Scope; contradictory fields block.
-   A missing, inaccessible, unresolved or multiply resolved scope blocks the run.
-   Never guess from linked Projects or named views. Scope selection supplies no
-   item authority. Follow Parent-issue scope below for graph and lifecycle reads.
-3. Resolve repository host and `owner/repository` from the current checkout's
-   git remote and verify its live identity. When the code host is not GitHub,
+   other providers need their own supported binding). Resolve repository host
+   and `owner/repository` from the current checkout's git remote and verify its
+   live identity. When the code host is not GitHub,
    resolve the tracker repository under [Delivery bindings](provider-bindings.md)
-   step 1 (labels and short `#N` use it) and take code-host identity, base and
-   merge policy from that host's binding. Use explicit repository overrides
-   first; without them, conflicting remotes or an unclear repository block.
-   Obtain the default branch from live repository settings and use it as base
+   step 1 (labels and short `#N` use it). Use explicit repository overrides first;
+   without them, conflicting remotes or an unclear repository block.
+3. Resolve **Scope** from the trusted override when present, otherwise from the
+   invocation. A Project URL selects a board; route a named issue to
+   [Direct issue scope](#direct-issue-scope) via `deliver-issue`. Use the
+   verified tracker repository for a short `#N`.
+   Validate explicit selectors and identity pins against exactly one canonical
+   URL and stable node ID. Invalid, inaccessible or conflicting explicit scope
+   blocks the run without discovery.
+   - With no explicit scope for `run-project`, read all Projects linked to the
+     verified GitHub tracker repository. Use the GitHub connector or the
+     [repository's `projectsV2` GraphQL connection](https://docs.github.com/en/graphql/reference/repos#repository)
+     via `gh api graphql` on that host. Paginate without a name filter and read
+     `id`, `url`, `title`, `closed` and `template`, using supplied complete state
+     when available. Follow [remote reconciliation](#remote-reconciliation) for
+     all live reads.
+   - Select the sole visible open, non-template Project from a complete read.
+     With zero or multiple candidates, or incomplete or unavailable evidence,
+     report `configuration-blocked` for Scope (in review, `review-blocked`),
+     list the known candidate URLs and the reason, and ask for the Project URL
+     or the access needed to validate it. Use repository links as the only
+     discovery signal.
+   - Report the inferred Project URL and repository. Continue with normal
+     binding validation and repository filtering, and record the resolved
+     Project ID in the effective binding. Discovery is read-only and grants no
+     item authority. Keep the resolved Project for the run and check it against
+     any retained binding before recovery.
+4. Obtain the default branch from live code-host repository settings and use it as base
    unless overridden. Resolve a merge queue when required by live policy;
    otherwise use the sole permitted repository merge method. Multiple permitted
    methods without an explicit repository preference or override block; do not
@@ -198,7 +225,7 @@ Only an already trusted, committed display-name-only edit may use
    `close-after-merge`; default Done automation to `set-status` without archive.
    For Project scope read actual workflows and reject conflicting automation;
    parent scope uses closed issues as Done and no Project automation.
-4. Overlay only supplied override fields on these defaults. For parent scope,
+5. Overlay only supplied override fields on these defaults. For parent scope,
    resolve the existing `agent:in-progress` claim label by the same unique-name/ID
    rules as role labels, requiring a distinct ID from every role label. It is
    agent-owned bookkeeping, never a role grant.
@@ -210,7 +237,7 @@ Only an already trusted, committed display-name-only edit may use
    selects its ID instead, but must still resolve to the intended object in the
    correct Project/field/repository with the stored name. A name change on the
    same ID is drift requiring reconciliation; an ID resolving elsewhere stops.
-5. Paginate repository labels and resolve the conventional role names
+6. Paginate repository labels and resolve the conventional role names
    `ready-for-agent`, `ready-for-human`, `needs-triage`, and `epic` freshly.
    Match names case-insensitively for discovery, then retain the exact live name
    and ID. Require exactly one label per role; missing labels or multiple
@@ -219,7 +246,7 @@ Only an already trusted, committed display-name-only edit may use
    Never create/rename labels, infer roles from prose, or add/restore agent
    authority. Optional Wayfinder stays disabled unless explicitly enabled with
    complete mappings. Agent Setup defaults to runtime capabilities.
-6. For Project scope resolve optional Priority if present: require one `Priority` field, unique
+7. For Project scope resolve optional Priority if present: require one `Priority` field, unique
    option names and its complete live option order; absence means all items
    have unset priority and no `--priority` arguments. Explicit Priority mappings
    override order/names/IDs and are validated. Parent scope uses sub-issue order,
@@ -248,9 +275,12 @@ new authority.
 2. Use issue states and native relationships without requiring a Project, Status,
    Priority, board configuration or board role-label definitions. Read any existing
    trusted overrides and ownership records; conflicting scope or ownership blocks
-   writes. Do not enter board setup or create missing labels. The root is part of
-   the requested outcome and may need implementation itself; it is not forced into
-   an epic-only lane. A shape label does not grant or remove execution authority.
+   writes. When a trusted GitHub Project binding names the issue in a retained
+   migration table, verify its release under
+   [retained claims](#retain-claims-across-legacy-migration) before writing.
+   Leave release to the Project controller. Direct delivery includes the root
+   in the requested outcome. A shape label does not grant or remove execution
+   authority. Keep board setup and label creation outside this lane.
 3. Follow the [issue lifecycle](issue-lifecycle.md) to establish the live invocation
    grant and its holds/stops, clarify requirements, plan and deliver. Do not feed
    direct scope into the board ranker, manufacture role labels, or apply board Todo
@@ -398,7 +428,8 @@ binding. If no separate checkout is available, present the proposed patch
 without writing it; setup does not create worktrees. Existing owners may finish
 their claims against the old digest, including feedback and repair. Defer
 committing the new configuration to verified base and activating it until all
-old-digest claims finish. If validation passes, report
+old-digest claims finish. The only exception for legacy migration is the
+[retained-claim procedure](#retain-claims-across-legacy-migration). If validation passes, report
 `configuration-ready-to-commit` with application or activation pending as
 appropriate; do not change existing owners or leases. New routing and other
 configuration changes apply only after activation.
@@ -443,9 +474,10 @@ alone authorizes discovery and a dry run, not migration or execution.
    repeated approval; reconcile any prior journal before declaring completion.
    Missing, ambiguous, inaccessible
    or partial identities block migration; ask the human to resolve missing
-   target options instead of creating/renaming them. Require zero In Progress
-   items, no active/paused/parked old-binding leases, and quiesced writers before
-   applying; otherwise present the dry run with those exact blockers.
+   target options instead of creating/renaming them. Require quiesced writers,
+   zero In Progress items and no old-binding leases unless each such item or
+   lease qualifies under [retained claims](#retain-claims-across-legacy-migration).
+   Report every ineligible item or lease as a dry-run blocker.
 2. **Present the complete dry run.** Enumerate every item in Backlog or Ready to
    implement, including identity/reference, old option ID/name, target Todo
    ID/name, exact current label IDs/names and unchanged labels. Include zero
@@ -465,12 +497,13 @@ alone authorizes discovery and a dry run, not migration or execution.
    each trusted exact-file reference in `AGENTS.md`/`CLAUDE.md` in the same patch.
    An existing destination, conflicting references or local edits require a
    reconciled patch preserving both, never overwrite. Show the journal location,
-   rollback plan and activation/commit boundary. Leave every Status option intact.
+   rollback plan and activation/commit boundary. Include the retained claims
+   and their treatment under the new binding. Leave every Status option intact.
    Finish `migration-awaiting-approval` with no board or repository writes,
    including no journal file, until explicit approval of this exact plan. A
    decline finishes `migration-declined` with no changes; silence is not approval.
 3. **Journal before applying.** Refresh the whole plan and preconditions after
-   approval; changed membership, labels, files or identities require a revised
+   approval; changes to membership, labels, files, claims or writer state require a revised
    dry run and renewed approval. Persist a durable local migration record at
    the approved location before the first write and verify it can be read back.
    Include migration/operation IDs, approval evidence, repository/Project/field/
@@ -482,7 +515,7 @@ alone authorizes discovery and a dry run, not migration or execution.
    attempted/verified/unknown/conflicted results and authoritative readbacks
    durably after it. If journaling fails, stop before the next write.
 4. **Apply and reconcile one operation at a time.** Recheck each original-state
-   precondition immediately before its write. Change only Status for a listed
+   precondition and the writer fence immediately before its write. Change only Status for a listed
    item, using the verified Project/item/field/option IDs; refetch and verify
    Status, labels, membership, assignment and archive state after every write.
    Preserve labels verbatim; migration never adds/restores `ready-for-agent`.
@@ -518,6 +551,64 @@ alone authorizes discovery and a dry run, not migration or execution.
    board-only migration finishes `configuration-valid` only after fresh binding
    validation. Human option deletion is a separate action once old options are
    empty; setup never deletes options, even after approval or rollback.
+
+### Retain claims across legacy migration
+
+Use this exception only when migrating a trusted legacy file to a committed
+replacement on the same Project and repository. Board-only migrations still
+require zero In Progress items and no old leases.
+
+1. **Verify each claim at cutover.** Carry a verified authority pause or a
+   quiesced Todo handoff with a verified active plan leaf and exclusive
+   assignment. Verify the old binding and claim identity, original marker
+   author and digest, current membership/lane and owner, and checkpoint or
+   owner evidence that all writers and in-flight mutations are settled. An
+   In Progress item qualifies only with a verified authority pause. An active
+   writer, unmatched In Progress item, CI-parked lease or unverified claim
+   blocks application. Preserve uncertain artifact or budget evidence as
+   unknown and require it to be resolved before resume.
+2. **Specify the preservation in the approved patch.** Add a
+   `## Retained migration claims` table to the replacement binding. List each
+   issue URL and node ID, Project item ID, assignee, pre/post Status option IDs,
+   kind (`authority-pause` or `todo-handoff`), and original committed binding
+   identity and digest. Pin the immutable pause or active plan permalink
+   and [payload digest](../../to-plan/references/github-mode.md#payload-digest).
+   Journal the same entries and the preserved source,
+   branches, heads, PRs, checkpoints, qualification evidence and consumed or
+   remaining budgets. Use null for verified absence and mark unknowns explicitly.
+   Keep local paths and private evidence out of the committed table. Move a
+   retained Backlog/Ready item only via its listed Status operation. Preserve
+   the labels, owner, dependency edges, historical markers and artifacts.
+   Keep excluded labelled items out of the dry run's newly eligible list.
+3. **Fence dispatch through activation.** Keep old and new controllers and
+   ticket writers quiesced from the first mutation through readback and
+   activation. Activate only once the complete journal reconciles, the trusted
+   replacement containing the approved table is committed on verified base,
+   and fresh reads confirm the migration and its retained items. Before
+   ranking and on refresh, match table entries by stable IDs and check the
+   current owner, marker and Status. Keep unresolved entries in the frontier
+   outside ranking and capacity, with their dependency edges, even when a
+   checkpoint is unavailable. Mismatched entries block their own writes and
+   stay excluded. An incomplete or ambiguous table blocks dispatch until all
+   its protected identities are known. An old binding cannot issue a new
+   grant after activation.
+4. **Resume under the current binding.** Observe the original pause's resume
+   condition or obtain an explicit scoped continuation for a Todo handoff.
+   Apply label-stop and revalidate ownership, source/plan, worktree, PR/head,
+   base, budget, and applicable checks, reviews and grants. Publish and refetch
+   one runner-authored `<!-- run-github-project:migration-resume:v1 -->`
+   record linking the committed table entry and original marker permalink and
+   digest, old/new binding digests, verified resume evidence, and the new
+   lease identity. Apply the normal authority-resume protocol for paused
+   work. Reconstruct the transition from both records on later runs. Require
+   owner acknowledgement before writes and keep the same owner, artifacts and
+   counters. A missing or ambiguous record preserves the hold. Neither
+   migration nor the table supplies execution authority or qualification.
+5. **Rollback before release.** Apply the ordinary journal rollback only
+   after fencing writers and checking that no retained claim changed or
+   acquired a lease under the new binding. If a claim resumed or activation
+   admitted other work, preserve it and reconcile the affected binding and
+   ownership before any inverse operation.
 
 ## GitHub Project Configuration
 
@@ -1079,7 +1170,14 @@ Use that same Todo shape for configured epics, human work, and
 label. The ranker derives the work shape and next action from configured label
 names; never add a synthetic role to its input.
 
-Use GitHub logins, never display names, for assignees and PR authors. Normalize `labels` to exact label names. Normalize
+Use GitHub logins, never display names, for assignees and PR authors when
+GitHub is the tracker. For a GitLab tracker, authenticate the selected GitHub
+code-host account and compare its immutable GitHub account ID with the PR
+author's ID. Map an exact match to the verified GitLab tracker runner identity
+used for assignees and `--current-user`. Keep other authors as distinct
+GitHub-host-qualified identities. Missing or unverified author identity never
+matches the runner. Preserve the original provider ID and login in the
+delivery record. Normalize `labels` to exact label names. Normalize
 `blockerRefs` and `openDescendants` entries to integer issue numbers for the
 configured repository or `owner/repository#number` strings for cross-repository
 issues; never pass GraphQL objects. Use a finite non-negative numeric Project
@@ -1275,11 +1373,15 @@ mutation, or success claim, apply [remote reconciliation](#remote-reconciliation
 
 ## Closing reference verification
 
-After every PR creation or body edit by the
-controller or its ticket owner, read the complete `closingIssuesReferences` set
-through the connector or GraphQL/`gh pr view` fallback. Compare repository-qualified
-issue identities exactly: only the ticket for a fully closing PR under
-`closing-keyword`, and none for a non-closing partial PR or `close-after-merge`.
+After every PR creation or body edit and immediately before merge, read all
+pages of `closingIssuesReferences` for the exact PR through the connector or
+GraphQL/`gh pr view` fallback. Use paginated GraphQL if the initial read
+cannot establish completeness. Compare sets of repository-qualified issue
+identities against the recorded intent. A single-issue native closure expects
+a singleton. A grouped default-branch PR under `closing-keyword` expects
+exactly the fully satisfied, authorized issues with verified native closure.
+Partial delivery, mixed tracker/host closure, `close-after-merge`, and
+delivery without closure authority expect an empty set.
 On mismatch, correct the body and re-read before shepherding CI or merging;
 remove an unintended manual closing link through the permitted PR operation
 if a body correction cannot clear it. Unknown, partial or still-mismatched
@@ -1308,7 +1410,22 @@ fingerprints ordered sub-issue IDs, dependency IDs and states, labels,
 assignment, identity and latest marker-comment change. Equal dependency counts
 cannot hide replaced edges. Incomplete reads or identity ambiguity return an
 error, never an unchanged/empty graph. `--board-from` preserves the same prior
-scope graph for parent scope too; it refreshes only watched PRs.
+scope graph for parent scope too.
+
+For a targeted replacement, add `--board-from <prior baseline>` to
+`snapshot` and pass repeatable `--refresh-pr <N>` for exactly the PRs covered
+by the following authoritative read. Keep the complete watch set in `--pr`.
+The snapshot queries those refresh PRs and newly watched PRs. It preserves
+other prior PR fingerprints, including removed identities, as well as item
+and issue fingerprints. `--refresh-pr` requires `snapshot --board-from` and
+each refresh PR must be in `--pr`.
+
+The PR fingerprint includes the aggregate check status and each check run and
+status context on the observed head. The watcher reads every context page and
+returns an error if the PR/head identity changes or a page is incomplete.
+Treat check changes as a signal for an authoritative reread, where the
+controller determines requiredness and readiness.
+
 The default interval remains 120 seconds. This command never performs writes.
 
 ## Publish an authority pause
