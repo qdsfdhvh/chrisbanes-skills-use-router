@@ -48,7 +48,6 @@ only when its independent behavior changes the same work.
 | Kotlin library release preparation, publication, or readiness | [`release-kotlin-library`](../release-kotlin-library/DOC.md) |
 | Explicit delivery of a named tracker issue and its descendants | [`deliver-issue`](../deliver-issue/DOC.md) |
 | Explicit setup, review, next-ticket execution or drain of a project board | [`run-project`](../run-project/DOC.md) |
-| Implementation of a local specification without a tracker issue | External `implement` workflow |
 
 ## Combination boundaries
 

@@ -8,9 +8,11 @@ permissions; one controller retains ownership from clarification through closure
 
 ## Procedure
 
-1. Resolve the named tracker issue against the verified repository. Local specs
-   belong to the external `implement` workflow: return that route without creating
-   an issue or executing delivery. Use `run-project` for board selection.
+1. For a local spec with no tracker item, return the route through `to-plan`
+   in conversation mode for one plan, then `implement-with-subagents` for one MR.
+   Stop there without creating an issue or executing delivery. Use `run-project`
+   for board selection. Otherwise resolve the named tracker issue against the
+   verified repository.
 2. For an active board controller's verified single-ticket handoff, read the
    bundled [controller handoff](references/project-handoff.md) and follow it
    instead of standalone control. Inherit only the selected ticket scope, never
@@ -19,8 +21,8 @@ permissions; one controller retains ownership from clarification through closure
    controller returns to it without claiming or launching another scheduler.
 3. Otherwise read [Issue lifecycle](references/issue-lifecycle.md) completely,
    then [Delivery bindings](references/provider-bindings.md) and the selected
-   binding's issue operations. On GitHub read
-   [Direct issue scope](references/github-binding.md#direct-issue-scope).
+   binding's issue operations. For a GitHub tracker read
+   [Direct issue scope](references/github-delivery.md#direct-issue-scope).
    For a Jira Cloud key read [Scope and readiness](references/jira-binding.md#scope-and-readiness)
    and the Jira tracker operations.
    For GitLab read the selected [tracker](references/gitlab-binding.md#tracker-operations)
@@ -28,14 +30,18 @@ permissions; one controller retains ownership from clarification through closure
    Resolve the complete root/descendant graph, holds, ownership, approved plans,
    pending outcomes and invocation grants before planning or writing.
 4. Follow the issue lifecycle for clarification, planning, dependencies and
-   scheduling. For each approved outcome follow the bundled
+   scheduling. After verifying readiness in standalone delivery, use
+   [Bug diagnosis](references/bug-diagnosis.md) for a bug with clear expected
+   behavior and no current plan when the evidence leaves the fix speculative.
+   Do this before choosing the fast path or drafting an implementation plan.
+5. For each approved outcome follow the bundled
    [delivery lifecycle](references/delivery-lifecycle.md),
    [implementation procedure](references/implementation-mode.md) and
    [evidence and review](references/evidence-and-review.md).
    Preserve existing plans and use the PR boundaries in the
    [tree delivery procedure](references/issue-lifecycle.md#deliver-the-tree).
    Keep repairs with their owner.
-5. Reconcile exact-head checks/reviews and explicit merge/closure grants through
+6. Reconcile exact-head checks/reviews and explicit merge/closure grants through
    the binding. Follow the issue lifecycle's bounded waiting and resume procedure;
    board handoffs follow their controller's cadence instead.
 
