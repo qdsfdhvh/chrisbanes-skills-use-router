@@ -43,7 +43,7 @@ the selected mode retains its approval, authority and finish gates.
 
 ## Implementation and validation
 
-1. Apply [Behavioral review and repair](behavioral-review.md) for implementation
+1. Apply [Behavioral review and repair](../../implement-with-subagents/references/behavioral-review.md) for implementation
    checkpoints, batched findings, immediate interruptions, demonstrated boundary
    failures, review coverage accounts, external-review convergence and
    browser failure diagnostics. It owns those rules; keep their evidence in the
@@ -60,10 +60,17 @@ the selected mode retains its approval, authority and finish gates.
    and provider validation. Repeat checks only when changes invalidate evidence,
    impact cannot be bounded, or an explicit repository/provider rule requires it.
    A commit, handoff or acceptance step alone does not require a full rerun.
-   When the PR's required CI checks run the same full suite on the pushed
-   head, do not duplicate it locally: push after affected checks and independent
-   review, and use CI results on that exact head before delivery acceptance or
-   merge. Apply [PR review timing](pr-review-timing.md) for concurrent external
+   Before invoking the executor, use the current required check policy for the
+   selected base. Reuse the board controller's verified policy when still
+   applicable, or read it through the code-host binding. Match exact check
+   names and sources to the trusted CI workflow or pipeline configuration.
+   Record which checks run the equivalent full suite on the PR head, including
+   applicable triggers and filters. Pass those check names and covered checks to the executor as
+   pending CI. Run the required full suite locally if coverage or applicability
+   cannot be verified. Push after affected checks, mandatory pre-push checks
+   and independent review. Require the named CI results on the exact final head
+   before delivery acceptance or merge.
+   Apply [PR review timing](../../shepherd/references/pr-review-timing.md) for concurrent external
    review, verified draft support and earlier readiness, including when CI only
    starts after leaving draft. Run the full suite locally when a repository or
    provider rule requires it, or run checks CI cannot supply, such as device,
@@ -109,10 +116,8 @@ the selected mode retains its approval, authority and finish gates.
    universal prerequisite. Do not revert useful implementation to reconstruct a
    test-first history. Where useful, prove sensitivity with a bounded baseline
    check or intentional fault, restore the candidate and report the actual order.
-2. If explicitly invoking the separately installed `tdd` skill, read its contract.
-   Its mandatory user-confirmed seams and red-before-green order conflict with
-   this workflow's default. Identify that exact conflict and follow the user's
-   direction; do not silently edit the provider or claim TDD was performed.
+2. When user or repository policy requires the installed `tdd` skill, follow
+   its confirmed-seam and red-before-green requirements. Record actual evidence.
 3. Record routine implementation, fixture and mechanical plan corrections briefly
    in the same record and continue when requirements, coverage, architecture and
    authority are unchanged. Renew affected evidence without a plan-publication
@@ -191,7 +196,7 @@ the selected mode retains its approval, authority and finish gates.
    - Every prior finding with a stable ID, location, repair commit/diff or
      evidence-backed disposition, verification, and rationale for affected
      interactions. Keep new interaction findings separate from repaired ones.
-2. Apply [Behavioral review and repair](behavioral-review.md) for first-review
+2. Apply [Behavioral review and repair](../../implement-with-subagents/references/behavioral-review.md) for first-review
    and repair scope, coverage accounts and convergence. Retain evidence under
    the implementation and validation procedure above.
 3. Read each explicitly invoked review skill's actual contract before assigning
@@ -211,7 +216,7 @@ the selected mode retains its approval, authority and finish gates.
    coverage. Do not suppress mandated work, credit an omitted contract or
    silently substitute another route. The bundled independent reviewer needs
    no external skill or tracker setup where it is the authorised route.
-4. Require the [behavioral coverage account](behavioral-review.md) alongside
+4. Require the [behavioral coverage account](../../implement-with-subagents/references/behavioral-review.md) alongside
    each verdict. Return findings to the implementation owner for repair or an
    evidence-based disposition. The bundled independent route requires a `ship`, `fix-first`
    or `rethink` verdict with separate results for the required contracts. Keep

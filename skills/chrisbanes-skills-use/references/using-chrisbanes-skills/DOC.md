@@ -46,6 +46,7 @@ only when its independent behavior changes the same work.
 | Comparing physical Android benchmark configurations, reversed rankings, or an Android default | [`android-benchmark-comparison`](../android-benchmark-comparison/DOC.md) |
 | Unreleased changelog maintenance or specified-release notes | [`changelog`](../changelog/DOC.md) |
 | Kotlin library release preparation, publication, or readiness | [`release-kotlin-library`](../release-kotlin-library/DOC.md) |
+| Behavior-preserving cleanup or a simplification review of changed code | [`simplify-changes`](../simplify-changes/DOC.md) |
 | Explicit delivery of a named tracker issue and its descendants | [`deliver-issue`](../deliver-issue/DOC.md) |
 | Explicit setup, review, next-ticket execution or drain of a project board | [`run-project`](../run-project/DOC.md) |
 

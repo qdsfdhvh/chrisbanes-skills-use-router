@@ -43,8 +43,9 @@ Done automation fields a GitHub Project board needs):
 - Required approvals: `<rule summary, none or unavailable>`
 ```
 
-- `Tracker` `Repository` is required when the tracker is `github`, because the
-  GitLab checkout origin cannot identify the tracker repository.
+- Resolve a GitHub tracker repository from the
+  [shared tracker guide or delivery binding](provider-bindings.md#shared-repository-configuration).
+  The GitLab checkout origin cannot identify it.
 - `Project ID` is operator-supplied; setup may propose it from a read. Keep
   names beside IDs: the same Project ID under a new path is repairable drift
   (`configuration-blocked` for the whole run until setup reconciles the path);
@@ -87,11 +88,12 @@ planning resolve a canonical issue URL or qualified reference against the
 trusted tracker identity. Resolve a bare IID only against the bound tracker
 project. Keep scope, claim and role names beside IDs. Apply the project drift
 rules above to the tracker independently of the checkout. For controller runs,
-use the existing `Triage` and `Work Roles` label mappings, including the
-human-applied `ready-for-agent` default. Record the effective tracker identity,
-selection, resolved labels and account ID in the binding fingerprint used by
-leases. Standalone `to-plan` uses the exact issue and any mapped holds. It
-requires no board selection, claim label or agent-work label.
+resolve the `Triage` and `Work Roles` names under
+[shared repository configuration](provider-bindings.md#shared-repository-configuration).
+Fall back to the conventional names for undeclared roles. Record the effective
+tracker identity, selection, resolved labels and account ID in the binding
+fingerprint used by leases. Standalone `to-plan` uses the exact issue and any
+mapped holds. It requires no board selection, claim label or agent-work label.
 A rename requires configuration reconciliation. An identity substitution stops
 the run. Omit GitHub Project fields and workflow settings for this tracker.
 
@@ -304,7 +306,11 @@ is the merge request IID.
    `GET projects/<url-encoded path>` must return the same project, with
    `path_with_namespace` equal to `Repository` and the live `default_branch`.
    The checkout's `origin` (https or ssh form) must name `Host` and
-   `Repository`. Any mismatch blocks under the drift rules above.
+   `Repository`. Match any configured `Default branch` to the live value.
+   Use the trusted `Base branch` when supplied and the live `default_branch`
+   otherwise. Verify the selected branch and its exact tip SHA through
+   `GET projects/:id/repository/branches/<url-encoded branch>` before planning or choosing
+   a checkout. Any mismatch blocks under the drift rules above.
 2. **Find or open a merge request:** Merge requests come only from task
    branches in the configured project, never forks. Before create, list
    `GET projects/:id/merge_requests?source_branch=<branch>&target_branch=<base>&state=all`
@@ -364,7 +370,7 @@ is the merge request IID.
    title prefix. Mark ready with `PUT projects/:id/merge_requests/:iid`
    removing that prefix, then read back `draft: false`. Return to draft by
    restoring the prefix. Change readiness only within caller authority under
-   [PR review timing](pr-review-timing.md).
+   [PR review timing](../../shepherd/references/pr-review-timing.md).
 9. **Source link and closing references:** Put the exact tracker URL in the
    description as non-closing text unless [Link and close](#link-and-close)
    and the shared closure gates select native closure. After every create or
@@ -459,6 +465,12 @@ If bounded access retries end during setup, report `configuration-blocked`.
 Finish with the applicable validation or proposed-edit result.
 
 ## Live Merge-Policy Fingerprint
+
+Use the verified base from code-host operation 1. Use the configured
+`Method` when it matches the project's live `merge_method`, or the live
+method when omitted. Resolve `Squash` under [Configuration](#configuration)
+and closure under [Link and close](#link-and-close). Record the resolved
+policy and applicable gates for the controller.
 
 Compute and recompute it as the
 [GitHub fingerprint](github-delivery.md#live-merge-policy-fingerprint) does,

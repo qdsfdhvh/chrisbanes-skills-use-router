@@ -14,19 +14,94 @@ When already in `to-plan`, stay in conversation mode and hand off one validated
 plan to `implement-with-subagents`. The caller opens one MR from the executor's
 verified integration branch when authorized.
 
+## Shared repository configuration
+
+For tracker planning and delivery, resolve the [trusted delivery overrides](#trusted-delivery-overrides)
+before comparing shared settings. For verified board handoffs, reuse the
+controller's validated settings.
+
+1. Read the closest trusted repository instructions on the verified base.
+   Use `docs/agents/issue-tracker.md` for the tracker provider and repository,
+   and `docs/agents/triage-labels.md` for the tracker labels mapped to
+   `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`,
+   and `wontfix`, when those instructions reference the exact files. Use only
+   applicable files and their committed contents. A referenced file that is
+   missing, invalid or has uncommitted edits blocks dependent work. A file
+   without a trusted reference supplies no settings. These docs are optional
+   for existing bindings and repositories without Matt Pocock's setup.
+2. Read the declared tracker provider and explicit tracker repository from
+   the tracker guide and the actual tracker label strings from the triage
+   table's local-label column. Resolve only fields the current operation
+   uses. Bind the labels to the resolved tracker repository or project.
+   Leave code host, provider-specific IDs and credentials, board scope,
+   Status, Priority, epic, claim and merge policy to the existing delivery
+   binding. A shared guide's prose supplies no operation grant or alternate
+   provider implementation.
+3. Compare shared values with explicitly configured delivery values for the
+   same tracker or role. Accept matching declarations as one setting and
+   retain any delivery ID pins. Use a lone declaration when the other source
+   omits it, and existing defaults when neither declares it. Resolve tracker
+   repository names to the same provider-qualified identity. If a declared
+   value is ambiguous, unsupported or conflicts, name the affected field
+   and both sources and stop before dependent work. Never choose one source
+   or fall back to defaults to bypass a conflict.
+4. Verify the resolved tracker and role identities through the selected
+   provider binding. Compare effective values and IDs on refresh and
+   recovery as usual. Keep the existing delivery digest when its file and
+   effective binding are unchanged. Include shared values used for delivery
+   in the existing fields of the resolved snapshot or fingerprint, without
+   hashing the shared Markdown or recording its path as a new identity input.
+   A prose-only edit that leaves these values unchanged does not
+   invalidate a claim. Use the existing binding drift and lease rules for
+   any effective change.
+
+Use the delivery binding's normal blocked result for affected operations.
+Finish configuration validation only after the sources agree and live
+identity checks pass. Board handoffs reuse the controller's validated
+settings. Standalone tracker planning uses the selected issue and applicable
+holds. It requires no board role mapping or agent-work label. Direct issue
+delivery retains its scoped readiness rules.
+
+## Trusted delivery overrides
+
+1. On the verified base, inspect `docs/agents/deliver-tasks.md` and any
+   override path explicitly referenced by the closest trusted repository
+   instructions. If both exist and select different files, report a
+   configuration conflict with both paths before dependent work. An existing
+   override requires an exact trusted reference and committed instructions
+   and contents. A missing referenced file, uncommitted edit or invalid
+   configuration blocks dependent work. If no override exists or is
+   referenced, use the selected provider's defaults.
+2. For board bindings, treat `docs/agents/run-github-project.md` as a legacy
+   file that requires migration. During execution, report conflicts or a
+   required migration without editing configuration. Board setup follows the
+   [legacy migration gate](../../run-project/references/github-binding.md#approval-gated-legacy-migration).
+3. Read applicable fields in `Tracker`, `Triage` and `Work Roles` for tracker
+   identity and role names or pins. Compare them with the shared guides above
+   before applying defaults. Standalone planning resolves only source and
+   hold fields. For delivery, also read `Code host`, `Repository` and
+   `Merge Policy` under the selected provider's binding. Board controllers
+   resolve board-specific fields through their own binding.
+
 ## Procedure
 
 1. Resolve the source's tracker and repository's code host from the invocation,
-   trusted configuration and fresh identity reads. Record both bindings and
-   exact item/repository identities. For either GitHub role, read the applicable
-   operations in the bundled
-   [GitHub binding](github-delivery.md#delivery-operations). For a Jira Cloud
-   tracker use the bundled [Jira binding](jira-binding.md). For GitLab read the
+   [shared repository configuration](#shared-repository-configuration),
+   the resulting trusted overrides and fresh identity reads. Record both
+   bindings and exact item/repository identities. For either GitHub role, read
+   the applicable operations in the bundled
+   [GitHub binding](github-delivery.md#delivery-operations). When GitHub is the
+   code host, verify its [target branch](github-delivery.md#resolve-code-host-target).
+   Read check policy when qualifying CI deferral and resolve the full
+   [merge policy](github-delivery.md#resolve-code-host-policy) at the
+   applicable merge preflight and recovery gates. For a Jira Cloud tracker
+   use the bundled [Jira binding](jira-binding.md). For GitLab read the
    selected [tracker](gitlab-binding.md#tracker-operations) or
-   [code-host](gitlab-binding.md#code-host-operations) operations, or both when selected.
+   [code-host](gitlab-binding.md#code-host-operations) operations, or both when
+   selected. Verify the GitLab target through code-host operation 1.
    A repository on either
    host does not imply a tracker on it. When the tracker repository differs
-   from the checkout origin, take it from the trusted `Tracker` configuration;
+   from the checkout origin, take it from the resolved tracker configuration;
    resolve a bare `#N` only against that tracker repository, never against the
    code host, and without it accept only canonical item URLs or
    repository-qualified references. For another provider, require
@@ -69,15 +144,16 @@ verified integration branch when authorized.
    acceptance and merge until corrected and read back. Never translate a tracker
    key into a host issue number.
 6. Have `shepherd` coordinate check, review, feedback and change-request operations
-   through the selected code-host binding, applying [PR review timing](pr-review-timing.md)
+   through the selected code-host binding, applying [PR review timing](../../shepherd/references/pr-review-timing.md)
    to the provider's change request. Preserve exact-head evidence and merge
    authority; host readiness is distinct from delivery `ready`. Return unsupported
    operations precisely rather than falling back to a different host.
 7. Immediately before authorized merge, refresh head/base, gates, authority,
    closure intent and linkage. Fingerprint the verified host merge policy and
    selected tracker's Done automation independently, including verified absence
-   where applicable. Compare both at preflight, before merge, on relevant
-   policy changes and before resuming parked work. Unknown required inputs or
+   where applicable. A board records both fingerprints at startup. A standalone
+   run records both at merge preflight. Compare retained fingerprints before
+   merge, on relevant policy changes and before resuming parked work. Unknown required inputs or
    policy drift stop and preserve all work. Merge through the code-host binding and verify
    merged state, merged head/commit and target base before any controller close.
    For native closure, read back the exact tracker item's terminal state. For

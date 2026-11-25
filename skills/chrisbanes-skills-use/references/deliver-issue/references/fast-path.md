@@ -36,11 +36,8 @@ recompute it; a change is a failed condition.
 1. Treat the source as the approved contract. Do not invoke `to-plan` or wait
    for plan publication approval. Standalone, the explicit request and the
    tracker readiness gate approve it.
-2. Apply ownership preflight under the
-   [implementation procedure](implementation-mode.md) and use its selected
-   route. Keep affected checks, owner self-review, task acceptance when
-   delegated, and the single independent final review against the source's
-   acceptance criteria and repository standards.
+2. Pass the source and brief plan as one item in the
+   [executor handoff](delivery-lifecycle.md#executor-handoff).
 3. Put the brief plan and classification in the PR description.
 
 ## Escalate
@@ -50,9 +47,9 @@ feedback. Do not finish by flagging the growth in the PR. Preserve the branch,
 commits, PR and evidence, and record which condition failed and why.
 
 - Standalone: record the escalation (failed condition, branch and head) in the
-  delivery record and, when a PR exists, in its description. Then invoke
-  `to-plan` with the retained work as evidence and honor its gates before
-  continuing.
+  delivery record and, when a PR exists, in its description. Invoke
+  `to-plan` in the [verified planning checkout](delivery-lifecycle.md#prepare-a-standalone-planning-checkout)
+  with the retained work as evidence. Honor its gates before continuing.
 - Project: return a replan packet to the controller under its
   [replan packet contract](project-handoff.md#return-a-replan-packet),
   citing the fast-path plan revision as the active plan.

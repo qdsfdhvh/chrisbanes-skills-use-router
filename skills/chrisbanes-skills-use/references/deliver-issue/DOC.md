@@ -34,9 +34,8 @@ permissions; one controller retains ownership from clarification through closure
    [Bug diagnosis](references/bug-diagnosis.md) for a bug with clear expected
    behavior and no current plan when the evidence leaves the fix speculative.
    Do this before choosing the fast path or drafting an implementation plan.
-5. For each approved outcome follow the bundled
-   [delivery lifecycle](references/delivery-lifecycle.md),
-   [implementation procedure](references/implementation-mode.md) and
+5. For each approved outcome use the [delivery lifecycle](references/delivery-lifecycle.md)
+   to hand implementation and repair to `implement-with-subagents`. Apply
    [evidence and review](references/evidence-and-review.md).
    Preserve existing plans and use the PR boundaries in the
    [tree delivery procedure](references/issue-lifecycle.md#deliver-the-tree).

@@ -27,11 +27,11 @@ The binding supplies operations, never an invocation grant.
 
 ## Planning marker operations
 
-See [Planning marker operations](github-delivery.md#planning-marker-operations) in the shared issue and PR binding.
+See [Planning marker operations](../../deliver-issue/references/github-delivery.md#planning-marker-operations) in the shared issue and PR binding.
 
 ## Delivery operations
 
-See [Delivery operations](github-delivery.md#delivery-operations) in the shared issue and PR binding.
+See [Delivery operations](../../deliver-issue/references/github-delivery.md#delivery-operations) in the shared issue and PR binding.
 
 ## Binding validation
 
@@ -49,21 +49,20 @@ Only an already trusted, committed display-name-only edit may use
 
 ### Resolve defaults and overrides
 
-1. Read closest trusted repository instructions and inspect
-   `docs/agents/deliver-tasks.md`, or their explicitly referenced override path.
-   If both exist and select different files, stop on conflicting configuration.
-   Treat an existing legacy `docs/agents/run-github-project.md` as migration
-   required, not as an absent file. Setup must inspect the
-   [legacy migration](#approval-gated-legacy-migration) gate before resolving
-   defaults; execution returns `configuration-blocked` and never migrates.
-2. Select **Tracker** and **Code host** independently (default `github` for
-   each; a `gitlab` code host uses the [GitLab binding](gitlab-binding.md);
+1. Resolve the [shared repository settings and trusted delivery overrides](../../deliver-issue/references/provider-bindings.md#shared-repository-configuration)
+   before applying tracker and role defaults. Execution returns
+   `configuration-blocked` on a conflict or required migration.
+2. Resolve the tracker and code-host identities.
+   Select **Tracker** and **Code host** independently (default `github` for
+   each; a `gitlab` code host uses the [GitLab binding](../../deliver-issue/references/gitlab-binding.md);
    other providers need their own supported binding). Resolve repository host
    and `owner/repository` from the current checkout's git remote and verify its
-   live identity. When the code host is not GitHub,
-   resolve the tracker repository under [Delivery bindings](provider-bindings.md)
-   step 1 (labels and short `#N` use it). Use explicit repository overrides first;
-   without them, conflicting remotes or an unclear repository block.
+   live identity. Use explicit code-host repository overrides first.
+   Without them, conflicting remotes or an unclear repository block.
+   Resolve the tracker repository independently from step 1's validated
+   settings. When the GitHub tracker repository is omitted, use the verified
+   GitHub checkout repository only if it identifies the tracker. Use the
+   resolved tracker for labels, short `#N`, and Project discovery and filtering.
 3. Resolve **Scope** from the trusted override when present, otherwise from the
    invocation. A Project URL selects a board; route a named issue to
    [Direct issue scope](#direct-issue-scope) via `deliver-issue`. Use the
@@ -89,16 +88,19 @@ Only an already trusted, committed display-name-only edit may use
      Project ID in the effective binding. Discovery is read-only and grants no
      item authority. Keep the resolved Project for the run and check it against
      any retained binding before recovery.
-4. Obtain the default branch from live code-host repository settings and use it as base
-   unless overridden. Resolve a merge queue when required by live policy;
-   otherwise use the sole permitted repository merge method. Multiple permitted
-   methods without an explicit repository preference or override block; do not
-   invent a preference. Verify any override against live permissions/rules.
-   Default issue closure to `closing-keyword` for the default base, otherwise
-   `close-after-merge`; default Done automation to `set-status` without archive.
-   For Project scope read actual workflows and reject conflicting automation;
-   parent scope uses closed issues as Done and no Project automation.
-5. Overlay only supplied override fields on these defaults. For parent scope,
+4. For Project scope resolve the configured Done automation (default
+   `set-status` without archive) and verify actual workflows. Parent scope
+   uses closed issues as Done and no Project automation. Resolve target and
+   policy once for the selected code host, including the selected tracker's
+   verified Done automation in the policy fingerprint. For GitHub,
+   use [target resolution](../../deliver-issue/references/github-delivery.md#resolve-code-host-target)
+   and [policy resolution](../../deliver-issue/references/github-delivery.md#resolve-code-host-policy).
+   For GitLab, use [code-host operation 1](../../deliver-issue/references/gitlab-binding.md#code-host-operations)
+   and the [GitLab merge policy](../../deliver-issue/references/gitlab-binding.md#live-merge-policy-fingerprint).
+   Block board execution on unsupported or ambiguous required policy. Keep the
+   verified target, effective policy and required reviews and checks for the
+   handoff, subject to the existing refresh gates.
+5. Apply remaining board-specific overrides only. For parent scope,
    resolve the existing `agent:in-progress` claim label by the same unique-name/ID
    rules as role labels, requiring a distinct ID from every role label. It is
    agent-owned bookkeeping, never a role grant.
@@ -111,11 +113,12 @@ Only an already trusted, committed display-name-only edit may use
    correct Project/field/repository with the stored name. A name change on the
    same ID is drift requiring reconciliation; an ID resolving elsewhere stops.
 6. Paginate repository labels and resolve the conventional role names
-   `ready-for-agent`, `ready-for-human`, `needs-triage`, and `epic` freshly.
+   `ready-for-agent`, `ready-for-human`, `needs-triage`, and `epic` freshly,
+   using configured names from the shared resolver or delivery binding where supplied.
    Match names case-insensitively for discovery, then retain the exact live name
    and ID. Require exactly one label per role; missing labels or multiple
-   matches (including case variants) block. Explicit role names/IDs override
-   discovery; validate their identity and require distinct role mappings.
+   matches (including case variants) block. Validate explicit IDs against
+   the intended role and repository and require distinct role mappings.
    Never create/rename labels, infer roles from prose, or add/restore agent
    authority. Optional Wayfinder stays disabled unless explicitly enabled with
    complete mappings. Agent Setup defaults to runtime capabilities.
@@ -124,18 +127,18 @@ Only an already trusted, committed display-name-only edit may use
    have unset priority and no `--priority` arguments. Explicit Priority mappings
    override order/names/IDs and are validated. Parent scope uses sub-issue order,
    unset priority and no Project filter. Default filter is none, polling
-   is 120 seconds; read all applicable protection/review/check requirements live.
+   is 120 seconds.
    Finish `configuration-valid` only with complete evidence and an effective
    fingerprint. No-file validation creates neither a file nor an instruction
    patch and grants no claim, write or merge permission.
 
 ### Direct issue scope
 
-See [Direct issue scope](github-delivery.md#direct-issue-scope) in the shared issue and PR binding.
+See [Direct issue scope](../../deliver-issue/references/github-delivery.md#direct-issue-scope) in the shared issue and PR binding.
 
 ### Direct issue planning readiness
 
-See [Direct issue planning readiness](github-delivery.md#direct-issue-planning-readiness) in the shared issue and PR binding.
+See [Direct issue planning readiness](../../deliver-issue/references/github-delivery.md#direct-issue-planning-readiness) in the shared issue and PR binding.
 
 ### Parent-issue scope
 
@@ -257,6 +260,17 @@ Write after confirmation, preserving unrelated text; do not commit implicitly.
 Pause new claims until the pair is committed on verified base and freshly
 validated. A user-authorized configuration commit may contain only that pair.
 Absent a request for overrides, keep the no-file binding and create nothing.
+
+When asked to consolidate with the shared tracker and triage guides, resolve
+the binding before and after the proposed removal. Remove only duplicate
+tracker or role-name fields whose shared values resolve to the same live
+identities. Keep ID pins and delivery-specific fields. Compare the complete
+effective settings, including the selected scope and policies. A changed file
+digest still changes the lease identity. Follow the existing old-digest claim
+gate above, including retained migration claims: reconcile and finish them
+under their verified binding before activating this cleanup. Preserve the
+original digests and checkpoints. Use the normal fresh validation finish gate
+after the cleanup is committed.
 
 Treat a legacy `Execution approver logins` entry as obsolete configuration.
 Remove one shown in the binding during an otherwise authorized setup edit when no old-digest claim
@@ -432,7 +446,9 @@ require zero In Progress items and no old leases.
 Use `docs/agents/deliver-tasks.md` for optional overrides in the repository
 that owns the queue. Include only sections/fields being overridden; the following
 is a field catalogue, not a required complete file. Resolve omitted fields from
-fresh defaults. Replace included placeholders with live verified data. The
+the shared tracker and triage guides where applicable, then fresh defaults.
+Keep shared values in those guides when writing a new configuration. Replace
+included placeholders with live verified data. The
 closest trusted `AGENTS.md`, `CLAUDE.md`, or `GEMINI.md` must reference that exact file.
 For parent scope, use Scope type `parent-issue` and the canonical parent issue
 URL; omit Project, Status, Priority and Done automation sections. Optional
@@ -450,7 +466,7 @@ this template over it. Follow the
 ## Tracker
 
 - Provider: `github`
-- Repository: `<owner>/<repository; required when Code host is not github>`
+- Repository: `<owner>/<repository; explicit when the tracker differs from the checkout>`
 
 ## Code host
 
@@ -675,11 +691,11 @@ parking or retry signal.
 
 ## Live Merge-Policy Fingerprint
 
-See [Live Merge-Policy Fingerprint](github-delivery.md#live-merge-policy-fingerprint) in the shared issue and PR binding.
+See [Live Merge-Policy Fingerprint](../../deliver-issue/references/github-delivery.md#live-merge-policy-fingerprint) in the shared issue and PR binding.
 
 ## Remote Reconciliation
 
-Use [Remote reconciliation](github-delivery.md#remote-reconciliation) for
+Use [Remote reconciliation](../../deliver-issue/references/github-delivery.md#remote-reconciliation) for
 every logical read and authorized write. For Project operations missing from
 the connector, use `gh project` or ProjectV2 GraphQL. Ordinary setup uses
 the read steps only and returns `configuration-blocked` on exhausted access.
@@ -690,7 +706,7 @@ and ambiguous writes never qualify for parking.
 
 ## Unintended Closure
 
-See [Unintended Closure](github-delivery.md#unintended-closure) in the shared issue and PR binding.
+See [Unintended Closure](../../deliver-issue/references/github-delivery.md#unintended-closure) in the shared issue and PR binding.
 
 ## Normalized Ticket Schema
 
@@ -1143,7 +1159,7 @@ mutation, or success claim, apply [remote reconciliation](#remote-reconciliation
 
 ## Closing reference verification
 
-See [Closing reference verification](github-delivery.md#closing-reference-verification) in the shared issue and PR binding.
+See [Closing reference verification](../../deliver-issue/references/github-delivery.md#closing-reference-verification) in the shared issue and PR binding.
 
 ## Project Watcher command
 
